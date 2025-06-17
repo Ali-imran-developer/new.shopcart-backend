@@ -21,16 +21,16 @@ const dbConnect = async () => {
 };
 
 const webhookSchema = new mongoose.Schema({
-  // githubId: { type: Number, required: false },
-  repoName: { type: String, required: true },
-  image: { type: String, required: true },
-  committerName: { type: String, required: true },
-  committerEmail: { type: String, required: true },
-  commitDate: { type: String, required: true },
-  commitData: { type: Number, required: true },
-  repositoryId: { type: Number, required: true },
-  repositoryLanguage: { type: String, required: true },
-  branch: { type: String, required: true },
+  githubId: { type: Number },
+  repoName: { type: String },
+  image: { type: String },
+  committerName: { type: String },
+  committerEmail: { type: String },
+  commitDate: { type: String },
+  commitData: { type: Number },
+  repositoryId: { type: Number },
+  repositoryLanguage: { type: String },
+  branch: { type: String },
 });
 
 const Webhook = mongoose.models.Webhook || mongoose.model("Webhook", webhookSchema);
@@ -45,7 +45,7 @@ app.post("/webhook/create", async (req, res) => {
     const body = req.body;
     console.log(body);
     const dataToSave = {
-      // githubId: body?.id,
+      githubId: body?.id,
       repoName: body?.name,
       image: body?.avatar_url,
       committerName: body?.commit?.commit?.committer?.name,
