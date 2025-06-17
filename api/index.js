@@ -12,8 +12,8 @@ app.use(cors());
 let isConnected = false;
 const dbConnect = async () => {
   if (isConnected) return;
-  if (!process.env.MONGO_URI) throw new Error("MONGO_URI not defined");
-  await mongoose.connect(process.env.MONGO_URI, {
+  if (!process.env.DB) throw new Error("MONGO_URI not defined");
+  await mongoose.connect(process.env.DB, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   });
