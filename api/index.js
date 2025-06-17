@@ -56,7 +56,6 @@ app.post("/webhook/create", async (req, res) => {
       repositoryLanguage: body?.repository?.owner?.language,
       branch: body?.repository?.owner?.default_branch,
     };
-
     const saved = await Webhook.create(dataToSave);
     return res.status(201).json({
       success: true,
