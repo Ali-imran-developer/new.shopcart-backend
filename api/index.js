@@ -8,7 +8,6 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// ✅ Cache DB connection to prevent multiple connections on Vercel
 let isConnected = false;
 const dbConnect = async () => {
   if (isConnected) return;
@@ -21,7 +20,6 @@ const dbConnect = async () => {
   console.log("✅ MongoDB connected");
 };
 
-// ✅ Schema
 const webhookSchema = new mongoose.Schema({
   githubId: { type: Number, required: true },
   repoName: { type: String, required: true },
@@ -35,11 +33,8 @@ const webhookSchema = new mongoose.Schema({
   branch: { type: String, required: true },
 });
 
-// ✅ Prevent "OverwriteModelError"
-const Webhook =
-  mongoose.models.Webhook || mongoose.model("Webhook", webhookSchema);
+const Webhook = mongoose.models.Webhook || mongoose.model("Webhook", webhookSchema);
 
-// ✅ Routes
 app.get("/", (req, res) => {
   res.send("🌐 Webhook Server Working on Vercel");
 });
