@@ -8,14 +8,6 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-mongoose.connect(process.env.DB, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-mongoose.connection.once("open", () =>
-  console.log("✅ Connected to MongoDB Atlas")
-);
-
 const webhookSchema = new mongoose.Schema({
   githubId: { type: Number, required: true },
   repoName: { type: String, required: true },
@@ -31,7 +23,6 @@ const webhookSchema = new mongoose.Schema({
 
 const Webhook = mongoose.model("Webhook", webhookSchema);
 
-// ✅ Routes
 app.get("/", (req, res) => {
   res.send("<h1>✅ Webhook Server Running</h1>");
 });
