@@ -12,16 +12,16 @@ app.use(express.json());
 app.use(cors());
 
 const webhookSchema = new mongoose.Schema({
-  _id: Number,
-  repoName: String,
-  image: String,
-  committerName: String,
-  committerEmail: String,
-  commitDate: String,
-  commitData: Number,
-  repositoryId: Number,
-  repositoryLanguage: String,
-  branch: String,
+  githubId: { type: Number, required: true },
+  repoName: { type: String, required: true },
+  image: { type: String, requied: true },
+  committerName: { type: String, required: true },
+  committerEmail: { type: String, required: true },
+  commitDate: { type: String, required: true },
+  commitData: { type: Number, required: true },
+  repositoryId: { type: Number, required: true },
+  repositoryLanguage: { type: String, required: true },
+  branch: { type: String, required: true },
 });
 
 const Webhook = mongoose.model("Webhook", webhookSchema);
@@ -39,7 +39,7 @@ app.post("/webhook/create", async (req, res) => {
   try {
     const body = req.body;
     const dataToSave = {
-      _id: body?.id,
+      githubId: body?.id,
       repoName: body?.name,
       image: body?.avatar_url,
       committerName: body?.commit?.commit?.committer?.name,
