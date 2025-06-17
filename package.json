@@ -1,0 +1,17 @@
+{
+  "name": "vercel-express-api",
+  "version": "1.0.0",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js",
+    "dev": "nodemon api/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "mongoose": "^8.15.2",
+    "nodemon": "^3.1.10",
+    "serverless-http": "^3.2.0"
+  }
+}
