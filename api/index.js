@@ -1,20 +1,25 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const dbConnect = require("./dbConnect");
 const serverless = require("serverless-http");
-
 require("dotenv").config();
-const app = express();
 
-dbConnect();
+const app = express();
 app.use(express.json());
 app.use(cors());
+
+mongoose.connect(process.env.DB, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+mongoose.connection.once("open", () =>
+  console.log("✅ Connected to MongoDB Atlas")
+);
 
 const webhookSchema = new mongoose.Schema({
   githubId: { type: Number, required: true },
   repoName: { type: String, required: true },
-  image: { type: String, requied: true },
+  image: { type: String, required: true },
   committerName: { type: String, required: true },
   committerEmail: { type: String, required: true },
   commitDate: { type: String, required: true },
@@ -26,18 +31,15 @@ const webhookSchema = new mongoose.Schema({
 
 const Webhook = mongoose.model("Webhook", webhookSchema);
 
+// ✅ Routes
 app.get("/", (req, res) => {
-  res.send("<h1>what is this?</h1>");
+  res.send("<h1>✅ Webhook Server Running</h1>");
 });
 
 app.post("/webhook/create", async (req, res) => {
-  if (req.method !== "POST") {
-    return res
-      .status(405)
-      .json({ success: false, message: "Method Not Allowed" });
-  }
   try {
     const body = req.body;
+
     const dataToSave = {
       githubId: body?.id,
       repoName: body?.name,
@@ -51,14 +53,14 @@ app.post("/webhook/create", async (req, res) => {
       branch: body?.repository?.owner?.default_branch,
     };
     const saved = await new Webhook(dataToSave).save();
-    console.log("✅ Saved webhook to DB:", saved);
+    console.log("✅ Webhook saved:", saved);
     return res.status(201).json({
       success: true,
       message: "Webhook data saved",
       data: saved,
     });
   } catch (error) {
-    console.error("❌ Webhook Error:", error);
+    console.error("❌ Error saving webhook:", error);
     return res.status(500).json({ success: false, error: "Server error" });
   }
 });
