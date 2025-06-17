@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(cors());
 
 app.get("/", (req, res) => {
-  res.send("<h1>Hello World from Vercel!</h1>");
+  res.send("<h1>what the fuck is this?</h1>");
 });
 
 module.exports = app;
