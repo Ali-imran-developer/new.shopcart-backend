@@ -43,7 +43,7 @@ app.post("/webhook/create", async (req, res) => {
   try {
     await dbConnect();
     const body = req.body;
-
+    console.log(body);
     const dataToSave = {
       // githubId: body?.id,
       repoName: body?.name,
@@ -64,6 +64,8 @@ app.post("/webhook/create", async (req, res) => {
       data: saved,
     });
   } catch (error) {
+    const body = req.body;
+    console.log(body);
     console.error("❌ POST Error:", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
