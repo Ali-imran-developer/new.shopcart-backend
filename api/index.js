@@ -11,14 +11,6 @@ dbConnect();
 app.use(express.json());
 app.use(cors());
 
-mongoose.connect(process.env.DB, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-mongoose.connection.once("open", () =>
-  console.log("✅ Connected to MongoDB Atlas")
-);
-
 const webhookSchema = new mongoose.Schema({
   _id: Number,
   repoName: String,
