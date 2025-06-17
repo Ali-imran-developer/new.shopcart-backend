@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(cors());
 
 app.get("/", (req, res) => {
-  res.send("<h1>what the fuck is this?</h1>");
+  res.send("<h1>what is this?</h1>");
 });
 
 app.post("/webhook/create", async (req, res) => {
