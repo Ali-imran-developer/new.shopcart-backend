@@ -8,6 +8,20 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// ✅ Cache DB connection to prevent multiple connections on Vercel
+let isConnected = false;
+const dbConnect = async () => {
+  if (isConnected) return;
+  if (!process.env.MONGO_URI) throw new Error("MONGO_URI not defined");
+  await mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
+  isConnected = true;
+  console.log("✅ MongoDB connected");
+};
+
+// ✅ Schema
 const webhookSchema = new mongoose.Schema({
   githubId: { type: Number, required: true },
   repoName: { type: String, required: true },
@@ -21,14 +35,18 @@ const webhookSchema = new mongoose.Schema({
   branch: { type: String, required: true },
 });
 
-const Webhook = mongoose.model("Webhook", webhookSchema);
+// ✅ Prevent "OverwriteModelError"
+const Webhook =
+  mongoose.models.Webhook || mongoose.model("Webhook", webhookSchema);
 
+// ✅ Routes
 app.get("/", (req, res) => {
-  res.send("<h1>✅ Webhook Server Running</h1>");
+  res.send("🌐 Webhook Server Working on Vercel");
 });
 
 app.post("/webhook/create", async (req, res) => {
   try {
+    await dbConnect(); // connect first
     const body = req.body;
 
     const dataToSave = {
@@ -43,33 +61,27 @@ app.post("/webhook/create", async (req, res) => {
       repositoryLanguage: body?.repository?.owner?.language,
       branch: body?.repository?.owner?.default_branch,
     };
-    const saved = await new Webhook(dataToSave).save();
-    console.log("✅ Webhook saved:", saved);
+
+    const saved = await Webhook.create(dataToSave);
     return res.status(201).json({
       success: true,
-      message: "Webhook data saved",
+      message: "Data saved",
       data: saved,
     });
   } catch (error) {
-    console.error("❌ Error saving webhook:", error);
-    return res.status(500).json({ success: false, error: "Server error" });
+    console.error("❌ POST Error:", error.message);
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
 app.get("/webhook/getting", async (req, res) => {
   try {
-    const allWebhooks = await Webhook.find().sort({ _id: -1 });
-    return res.status(200).json({
-      success: true,
-      message: "Fetched webhook data",
-      data: allWebhooks,
-    });
+    await dbConnect();
+    const all = await Webhook.find().sort({ _id: -1 });
+    return res.status(200).json({ success: true, data: all });
   } catch (error) {
-    console.error("❌ Error fetching data:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch data",
-    });
+    console.error("❌ GET Error:", error.message);
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
