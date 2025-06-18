@@ -65,7 +65,104 @@ const getAllOrders = async (req, res) => {
   }
 };
 
+// Total Orders and Total Revenue (by product vendor)
+const getOrderStatsByVendor = async (req, res) => {
+  try {
+    const result = await Orders.aggregate([
+      { $unwind: "$lineItems" },
+      {
+        $group: {
+          _id: "$lineItems.productVendor",
+          totalOrders: { $sum: 1 },
+          totalRevenue: {
+            $sum: {
+              $multiply: [
+                { $toDouble: "$lineItems.productPrice" },
+                "$lineItems.productQuantity"
+              ]
+            }
+          }
+        }
+      },
+      { $sort: { totalRevenue: -1 } }
+    ]);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Monthly Orders Summary (grouped by month)
+const getMonthlyOrdersSummary = async (req, res) => {
+  try {
+    const result = await Orders.aggregate([
+      {
+        $addFields: {
+          createdMonth: {
+            $month: {
+              $toDate: "$createdAt"
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: "$createdMonth",
+          totalOrders: { $sum: 1 },
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Top Selling Products
+const getTopSellingProducts = async (req, res) => {
+  try {
+    const result = await Orders.aggregate([
+      { $unwind: "$lineItems" },
+      {
+        $group: {
+          _id: "$lineItems.productTitle",
+          totalSold: { $sum: "$lineItems.productQuantity" }
+        }
+      },
+      { $sort: { totalSold: -1 } },
+      { $limit: 5 }
+    ]);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Customer Order Count
+const getCustomerOrderCounts = async (req, res) => {
+  try {
+    const result = await Orders.aggregate([
+      {
+        $group: {
+          _id: "$customerEmail",
+          orderCount: { $sum: 1 }
+        }
+      },
+      { $sort: { orderCount: -1 } }
+    ]);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
 module.exports = {
   createOrder,
   getAllOrders,
+  getOrderStatsByVendor,
+  getMonthlyOrdersSummary,
+  getTopSellingProducts,
+  getCustomerOrderCounts,
 };
