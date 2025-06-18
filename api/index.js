@@ -97,8 +97,8 @@ async function registerOrderWebhook(shop, accessToken) {
 
 app.get("/webhook/register", async (req, res) => {
   try {
-    const shop = "crkwtg-ji.myshopify.com";
-    const accessToken = "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";
+    const shop = "dev-shopilam.myshopify.com";
+    const accessToken = "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";
     const result = await registerOrderWebhook(shop, accessToken);
     res.status(200).json({ success: true, message: "Webhook registered", data: result });
   } catch (error) {
