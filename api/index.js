@@ -130,7 +130,7 @@ const orderSchema = new mongoose.Schema({
 
 const Orders = mongoose.models.Orders || mongoose.model("Orders", orderSchema);
 
-app.post("orders/create", async (req, res) => {
+app.post("/orders/create", async (req, res) => {
   try {
     await dbConnect();
     const body = req.body;
