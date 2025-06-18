@@ -20,68 +20,6 @@ const dbConnect = async () => {
   console.log("✅ MongoDB connected");
 };
 
-const webhookSchema = new mongoose.Schema({
-  githubId: { type: Number },
-  repoName: { type: String },
-  image: { type: String },
-  committerName: { type: String },
-  committerEmail: { type: String },
-  commitDate: { type: String },
-  commitData: { type: Number },
-  repositoryId: { type: Number },
-  repositoryLanguage: { type: String },
-  branch: { type: String },
-});
-
-const Webhook =
-  mongoose.models.Webhook || mongoose.model("Webhook", webhookSchema);
-
-app.get("/", (req, res) => {
-  res.send("🌐 Webhook Server Working on Vercel");
-});
-
-app.post("/webhook/create", async (req, res) => {
-  try {
-    await dbConnect();
-    const body = req.body;
-    console.log(body);
-    const dataToSave = {
-      githubId: body?.id,
-      repoName: body?.name,
-      image: body?.avatar_url,
-      committerName: body?.commit?.commit?.committer?.name,
-      committerEmail: body?.commit?.commit?.committer?.email,
-      commitDate: body?.commit?.commit?.committer?.date,
-      commitData: body?.repository?.owner?.size,
-      repositoryId: body?.repository?.id,
-      repositoryLanguage: body?.repository?.owner?.language,
-      branch: body?.repository?.owner?.default_branch,
-    };
-    const saved = await Webhook.create(dataToSave);
-    return res.status(201).json({
-      success: true,
-      message: "Data saved",
-      data: saved,
-    });
-  } catch (error) {
-    const body = req.body;
-    console.log(body);
-    console.error("❌ POST Error:", error.message);
-    return res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.get("/webhook/getting", async (req, res) => {
-  try {
-    await dbConnect();
-    const all = await Webhook.find().sort({ _id: -1 });
-    return res.status(200).json({ success: true, data: all });
-  } catch (error) {
-    console.error("❌ GET Error:", error.message);
-    return res.status(500).json({ success: false, error: error.message });
-  }
-});
-
 const lineItemsData = new mongoose.Schema({
   itemId: { type: Number },
   productName: { type: String },
@@ -129,6 +67,43 @@ const orderSchema = new mongoose.Schema({
 });
 
 const Orders = mongoose.models.Orders || mongoose.model("Orders", orderSchema);
+
+async function registerOrderWebhook(shop, accessToken) {
+  try {
+    const response = await axios.post(
+      `https://${shop}/admin/api/2023-10/webhooks.json`,
+      {
+        webhook: {
+          topic: "orders/create",
+          address: `https://learning-express-three.vercel.app/orders/create`,
+          format: "json",
+        },
+      },
+      {
+        headers: {
+          "X-Shopify-Access-Token": accessToken,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    console.log("✅ Webhook registered:", response.data);
+    return response.data;
+  } catch (err) {
+    console.error("❌ Webhook registration failed:", err.response?.data || err.message);
+    throw err;
+  }
+}
+
+app.get("/webhook/register", async (req, res) => {
+  try {
+    const shop = "crkwtg-ji.myshopify.com";
+    const accessToken = "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";
+    const result = await registerOrderWebhook(shop, accessToken);
+    res.status(200).json({ success: true, message: "Webhook registered", data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error?.message });
+  }
+});
 
 app.post("/orders/create", async (req, res) => {
   try {
