@@ -2,24 +2,14 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const axios = require("axios");
+const dbConnect = require("./dbConnect");
 const serverless = require("serverless-http");
 require("dotenv").config();
 
 const app = express();
+dbConnect();
 app.use(express.json());
 app.use(cors());
-
-let isConnected = false;
-const dbConnect = async () => {
-  if (isConnected) return;
-  if (!process.env.DB) throw new Error("MONGO_URI not defined");
-  await mongoose.connect(process.env.DB, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
-  isConnected = true;
-  console.log("✅ MongoDB connected");
-};
 
 const lineItemsData = new mongoose.Schema({
   itemId: { type: Number },
@@ -108,7 +98,7 @@ app.get("/webhook/register", async (req, res) => {
 
 app.post("/orders/create", async (req, res) => {
   try {
-    await dbConnect();
+    // await dbConnect();
     const body = req.body;
     console.log(body);
     const order = await body;
@@ -166,7 +156,7 @@ app.post("/orders/create", async (req, res) => {
 
 app.get("/orders/getting", async (req, res) => {
   try {
-    await dbConnect();
+    // await dbConnect();
     const orders = await Orders.find({});
     return res.status(200).json({ success: true, data: orders });
   } catch (error) {
