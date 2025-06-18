@@ -135,7 +135,7 @@ app.post("/orders/create", async (req, res) => {
     await dbConnect();
     const body = req.body;
     console.log(body);
-    const order = await body.json();
+    const order = await body;
     const parsed = {
       orderId: order?.name,
       orderShopifyId: order?.id,
