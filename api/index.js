@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const mongoose = require("mongoose");
+const Orders = require("./models/Order");
 const axios = require("axios");
 const dbConnect = require("./dbConnect");
 const serverless = require("serverless-http");
@@ -10,54 +10,6 @@ const app = express();
 dbConnect();
 app.use(express.json());
 app.use(cors());
-
-const lineItemsData = new mongoose.Schema({
-  itemId: { type: Number },
-  productName: { type: String },
-  productTitle: { type: String },
-  productPrice: { type: String },
-  productQuantity: { type: Number },
-  productSKU: { type: String },
-  variantId: { type: Number },
-  variantTitle: { type: String },
-  productVendor: { type: String },
-  grams: { type: Number },
-});
-
-const orderSchema = new mongoose.Schema({
-  orderId: { type: String },
-  orderShopifyId: { type: Number },
-  createdAt: { type: String },
-  contactEmail: { type: String },
-  email: { type: String },
-  phone: { type: String },
-  financialStatus: { type: String },
-  fulfillmentStatus: { type: String },
-  note: { type: String },
-  tags: { type: String },
-
-  customerId: { type: Number },
-  customerEmail: { type: String },
-  customerPhone: { type: String },
-  customerCreatedAt: { type: String },
-
-  addressId: { type: Number },
-  addressCustomerId: { type: Number },
-  customerCompany: { type: String },
-  customerName: { type: String },
-  customerAddress1: { type: String },
-  customerAddress2: { type: String },
-  customerCity: { type: String },
-  customerZip: { type: String },
-  customerCountry: { type: String },
-  countryName: { type: String },
-  addressPhone: { type: String },
-  isDefaultAddress: { type: Boolean },
-
-  lineItems: { type: [lineItemsData] },
-});
-
-const Orders = mongoose.models.Orders || mongoose.model("Orders", orderSchema);
 
 async function registerOrderWebhook(shop, accessToken) {
   try {
