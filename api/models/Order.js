@@ -13,6 +13,19 @@ const lineItemsData = new mongoose.Schema({
   grams: { type: Number },
 });
 
+const addressSchema = new mongoose.Schema({
+  first_name: { type: String },
+  last_name: { type: String },
+  address1: { type: String },
+  address2: { type: String },
+  phone: { type: String },
+  city: { type: String },
+  zip: { type: String },
+  country: { type: String },
+  company: { type: String },
+  name: { type: String },
+});
+
 const orderSchema = new mongoose.Schema({
   orderId: { type: String },
   orderShopifyId: { type: Number },
@@ -42,6 +55,8 @@ const orderSchema = new mongoose.Schema({
   addressPhone: { type: String },
   isDefaultAddress: { type: Boolean },
   lineItems: [lineItemsData],
+  shippingAddress: addressSchema,
+  billingAddress: addressSchema,
 });
 
 module.exports = mongoose.models.Orders || mongoose.model("Orders", orderSchema);

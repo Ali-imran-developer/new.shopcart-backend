@@ -33,6 +33,8 @@ const createOrder = async (req, res) => {
       countryName: order?.customer?.default_address?.country_name,
       addressPhone: order?.customer?.default_address?.phone,
       isDefaultAddress: order?.customer?.default_address?.default,
+      shippingAddress: order?.shipping_address,
+      billingAddress: order?.billing_address,
       lineItems: order?.line_items?.map((item) => ({
         itemId: item?.id,
         productName: item?.name,
@@ -81,13 +83,13 @@ const getOrderStatsByVendor = async (req, res) => {
             $sum: {
               $multiply: [
                 { $toDouble: "$lineItems.productPrice" },
-                "$lineItems.productQuantity"
-              ]
-            }
-          }
-        }
+                "$lineItems.productQuantity",
+              ],
+            },
+          },
+        },
       },
-      { $sort: { totalRevenue: -1 } }
+      { $sort: { totalRevenue: -1 } },
     ]);
     res.json({ success: true, data: result });
   } catch (err) {
@@ -103,18 +105,18 @@ const getMonthlyOrdersSummary = async (req, res) => {
         $addFields: {
           createdMonth: {
             $month: {
-              $toDate: "$createdAt"
-            }
-          }
-        }
+              $toDate: "$createdAt",
+            },
+          },
+        },
       },
       {
         $group: {
           _id: "$createdMonth",
           totalOrders: { $sum: 1 },
-        }
+        },
       },
-      { $sort: { _id: 1 } }
+      { $sort: { _id: 1 } },
     ]);
     res.json({ success: true, data: result });
   } catch (err) {
@@ -130,11 +132,11 @@ const getTopSellingProducts = async (req, res) => {
       {
         $group: {
           _id: "$lineItems.productTitle",
-          totalSold: { $sum: "$lineItems.productQuantity" }
-        }
+          totalSold: { $sum: "$lineItems.productQuantity" },
+        },
       },
       { $sort: { totalSold: -1 } },
-      { $limit: 5 }
+      { $limit: 5 },
     ]);
     res.json({ success: true, data: result });
   } catch (err) {
@@ -149,17 +151,16 @@ const getCustomerOrderCounts = async (req, res) => {
       {
         $group: {
           _id: "$customerEmail",
-          orderCount: { $sum: 1 }
-        }
+          orderCount: { $sum: 1 },
+        },
       },
-      { $sort: { orderCount: -1 } }
+      { $sort: { orderCount: -1 } },
     ]);
     res.json({ success: true, data: result });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-
 
 module.exports = {
   createOrder,
