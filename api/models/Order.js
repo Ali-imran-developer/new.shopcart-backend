@@ -16,6 +16,7 @@ const lineItemsData = new mongoose.Schema({
 const orderSchema = new mongoose.Schema({
   orderId: { type: String },
   orderShopifyId: { type: Number },
+  customerEmail2: { type: String },
   createdAt: { type: String },
   contactEmail: { type: String },
   email: { type: String },
