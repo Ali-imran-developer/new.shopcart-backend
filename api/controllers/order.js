@@ -1,9 +1,28 @@
 const Orders = require("../models/Order");
+const fs = require("fs");
+const path = require("path");
+const payloadPath = path.join(__dirname, "../logs/order-payload.json");
+const responsePath = path.join(__dirname, "../logs/order-response.json");
+
+const readJsonArray = (filePath) => {
+  if (!fs.existsSync(filePath)) return [];
+  try {
+    const raw = fs.readFileSync(filePath);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.error(`❌ Error reading ${filePath}:`, err.message);
+    return [];
+  }
+};
 
 // Create Order (Webhook handler)
 const createOrder = async (req, res) => {
   try {
     const order = req.body;
+    const existingPayloads = readJsonArray(payloadPath);
+    existingPayloads.push(order);
+    fs.writeFileSync(payloadPath, JSON.stringify(existingPayloads, null, 2));
     console.log(order);
     const parsed = {
       orderId: order?.name,
@@ -49,6 +68,9 @@ const createOrder = async (req, res) => {
       })),
     };
     const saved = await Orders.create(parsed);
+    const existingResponses = readJsonArray(responsePath);
+    existingResponses.push(saved);
+    fs.writeFileSync(responsePath, JSON.stringify(existingResponses, null, 2));
     console.log(saved);
     return res.status(201).json({
       success: true,
