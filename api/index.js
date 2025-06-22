@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const orderRoutes = require("./orders/index");
 const CategoryRoute = require("./categories/index");
+const productRouter = require("./products/index");
 const testRoutes = require("./populate/index");
 const userRoutes = require("./users/index");
 const dbConnect = require("./dbConnect");
