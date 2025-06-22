@@ -76,7 +76,7 @@ const getAllOrders = async (req, res) => {
     const orders = await Orders.find({});
     return res.status(200).json({ success: true, data: orders });
   } catch (error) {
-    res.status(500).send("Server Error.");
+    res.status(500).send("Server Error.", error);
   }
 };
 
