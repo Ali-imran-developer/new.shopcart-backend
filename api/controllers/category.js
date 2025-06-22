@@ -40,13 +40,14 @@ const updateCategory = async (req, res) => {
     const { id } = req.params;
     const { name, subCategory, subCategoryId, subCategoryName } = req.body;
     const category = await Category.findById(id);
-    if (!category)
+    if (!category){
       return res.status(404).json({ message: "Category not found" });
-    if (!category.user.equals(req.user._id)) {
-      return res
-        .status(403)
-        .json({ success: false, message: "Not authorized" });
     }
+    // if (!category.user.equals(req.user._id)) {
+    //   return res
+    //     .status(403)
+    //     .json({ success: false, message: "Not authorized" });
+    // }
     if (name) category.name = name;
     if (subCategoryId && subCategoryName) {
       const sub = category.subCategory.id(subCategoryId);
