@@ -3,80 +3,154 @@ const Orders = require("../models/Order");
 // const fs = require("fs");
 // const responsePath = path.join(__dirname, "../logs/order-response.json");
 
-// Create Order (Webhook handler)
 const createOrder = async (req, res) => {
   try {
-    const order = req.body;
-    console.log(order);
-    const parsed = {
-      orderId: order?.name,
-      customerEmail2: order?.contact_email,
-      orderShopifyId: order?.id,
-      createdAt: order?.created_at,
-      contactEmail: order?.contact_email,
-      email: order?.email,
-      phone: order?.phone,
-      financialStatus: order?.financial_status,
-      fulfillmentStatus: order?.fulfillment_status,
-      note: order?.note,
-      tags: order?.tags,
-      customerId: order?.customer?.id,
-      customerEmail: order?.customer?.email,
-      customerPhone: order?.customer?.phone,
-      customerCreatedAt: order?.customer?.created_at,
-      addressId: order?.customer?.default_address?.id,
-      addressCustomerId: order?.customer?.default_address?.customer_id,
-      customerCompany: order?.customer?.default_address?.company,
-      customerName: order?.customer?.default_address?.name,
-      customerAddress1: order?.customer?.default_address?.address1,
-      customerAddress2: order?.customer?.default_address?.address2,
-      customerCity: order?.customer?.default_address?.city,
-      customerZip: order?.customer?.default_address?.zip,
-      customerCountry: order?.customer?.default_address?.country,
-      countryName: order?.customer?.default_address?.country_name,
-      addressPhone: order?.customer?.default_address?.phone,
-      isDefaultAddress: order?.customer?.default_address?.default,
-      shippingAddress: order?.shipping_address,
-      billingAddress: order?.billing_address,
-      lineItems: order?.line_items?.map((item) => ({
-        itemId: item?.id,
-        productName: item?.name,
-        productTitle: item?.title,
-        productPrice: item?.price,
-        productQuantity: item?.quantity,
-        productSKU: item?.sku,
-        variantId: item?.variant_id,
-        variantTitle: item?.variant_title,
-        productVendor: item?.vendor,
-        grams: item?.grams,
-      })),
-    };
-    const saved = await Orders.create(parsed);
-    // let existingOrders = [];
-    // if (fs.existsSync(responsePath)) {
-    //   const fileContent = fs.readFileSync(responsePath, "utf8");
-    //   existingOrders = fileContent ? JSON.parse(fileContent) : [];
-    // }
-    // existingOrders.push(saved);
-    // fs.writeFileSync(responsePath, JSON.stringify(existingOrders, null, 2));
-    console.log(saved);
-    return res.status(201).json({
+    const {
+      products,
+      tags,
+      promoCode,
+      shipmentDetails,
+      pricing,
+      paymentMethod,
+      shipperCity,
+      status,
+    } = req.body;
+
+    const store = await Store.findOne({ user: req.user._id });
+    if (!store) {
+      return res.status(404).json({
+        success: false,
+        message: "Store not found for this user.",
+      });
+    }
+
+    const totalOrders = await Order.countDocuments();
+    const customOrderName = `#${1001 + totalOrders}`;
+    const { email, name, phone, city } = shipmentDetails;
+    let customer;
+    customer = await Customer.findOne({
+      user: req.user._id,
+      customerName: name,
+      phone,
+    });
+    let isNewCustomer = false;
+    if (customer) {
+      customer.totalOrders += 1;
+      customer.totalSpent += pricing.totalPrice;
+      customer.city = city;
+    } else {
+      const sameCityCustomer = await Customer.findOne({
+        user: req.user._id,
+        city,
+      });
+      if (sameCityCustomer) {
+        customer = new Customer({
+          customerName: name,
+          phone,
+          city,
+          totalOrders: 1,
+          totalSpent: pricing.totalPrice,
+        });
+      } else {
+        customer = new Customer({
+          user: req.user._id,
+          customerName: name,
+          phone,
+          city,
+          totalOrders: 1,
+          totalSpent: pricing.totalPrice,
+        });
+        isNewCustomer = true;
+      }
+    }
+    await customer.save();
+    const newOrder = new Order({
+      user: req.user._id,
+      store: store._id,
+      name: customOrderName,
+      products,
+      tags,
+      promoCode,
+      paymentMethod,
+      shipperCity,
+      shipmentDetails,
+      pricing,
+      customer: customer._id,
+      status,
+    });
+    await newOrder.save();
+    store.totalOrders = (store.totalOrders || 0) + 1;
+    if (isNewCustomer) {
+      store.totalCustomers = (store.totalCustomers || 0) + 1;
+    }
+    await store.save();
+    res.status(201).json({
       success: true,
-      message: "Order received successfully!",
-      data: saved,
+      message: "Order created successfully!",
+      order: newOrder,
     });
   } catch (error) {
-    res.status(500).json({ error: "Server Error", details: error?.message });
+    console.error(error);
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 
-// Get All Orders
-const getAllOrders = async (req, res) => {
+const getAllOrder = async (req, res) => {
   try {
-    const orders = await Orders.find({});
-    return res.status(200).json({ success: true, data: orders });
+    const orders = await Orders.find({ user: req.user._id });
+    if (!orders || orders.length === 0) {
+      return res.status(200).json({
+        orders: [],
+        message: "No orders found",
+      });
+    }
+    const allProductIds = orders?.flatMap((order) =>
+      order?.products?.map((pd) => pd?.productId)
+    );
+    const uniqueProductIds = [...new Set(allProductIds)];
+    const allProducts = await Product.find({ _id: { $in: uniqueProductIds } });
+    const enrichedOrders = orders.map((order) => {
+      const enrichedProductDetails = order?.products
+        ?.map((pd) => {
+          const productData = allProducts?.find((product) =>
+            product._id.equals(pd.productId)
+          );
+          if (productData) {
+            return {
+              productData,
+              quantity: pd.productQty,
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
+      return {
+        ...order.toObject(),
+        trackingId: order.trackingId || null,
+        products: enrichedProductDetails,
+      };
+    });
+    return res.status(200).json({
+      success: true,
+      orders: enrichedOrders,
+    });
   } catch (error) {
-    res.status(500).send("Server Error.", error);
+    console.error(error);
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID format",
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
@@ -174,7 +248,7 @@ const getCustomerOrderCounts = async (req, res) => {
 
 module.exports = {
   createOrder,
-  getAllOrders,
+  getAllOrder,
   getOrderStatsByVendor,
   getMonthlyOrdersSummary,
   getTopSellingProducts,

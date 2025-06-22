@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
   createOrder,
-  getAllOrders,
+  getAllOrder,
   getCustomerOrderCounts,
   getMonthlyOrdersSummary,
   getOrderStatsByVendor,
@@ -10,7 +10,7 @@ const {
 } = require("../controllers/order");
 
 router.post("/create", createOrder);
-router.get("/getting", getAllOrders);
+router.get("/getting", getAllOrder);
 router.get("/vendor-stats", getOrderStatsByVendor);
 router.get("/monthly-summary", getMonthlyOrdersSummary);
 router.get("/top-products", getTopSellingProducts);
