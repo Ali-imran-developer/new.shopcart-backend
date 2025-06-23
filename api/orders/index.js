@@ -10,7 +10,7 @@ const {
 } = require("../controllers/order");
 
 router.post("/create", createOrder);
-router.get("/getting", getAllOrder);
+router.get("/get", getAllOrder);
 router.get("/vendor-stats", getOrderStatsByVendor);
 router.get("/monthly-summary", getMonthlyOrdersSummary);
 router.get("/top-products", getTopSellingProducts);

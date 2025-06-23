@@ -1,7 +1,8 @@
 // const path = require("path");
-const Orders = require("../models/Order");
 // const fs = require("fs");
 // const responsePath = path.join(__dirname, "../logs/order-response.json");
+const Order = require("../models/Order");
+const Product = require("../models/Product");
 
 const createOrder = async (req, res) => {
   try {
@@ -16,57 +17,57 @@ const createOrder = async (req, res) => {
       status,
     } = req.body;
 
-    const store = await Store.findOne({ user: req.user._id });
-    if (!store) {
-      return res.status(404).json({
-        success: false,
-        message: "Store not found for this user.",
-      });
-    }
+    // const store = await Store.findOne({ user: req.user._id });
+    // if (!store) {
+    //   return res.status(404).json({
+    //     success: false,
+    //     message: "Store not found for this user.",
+    //   });
+    // }
 
     const totalOrders = await Order.countDocuments();
     const customOrderName = `#${1001 + totalOrders}`;
-    const { email, name, phone, city } = shipmentDetails;
-    let customer;
-    customer = await Customer.findOne({
-      user: req.user._id,
-      customerName: name,
-      phone,
-    });
-    let isNewCustomer = false;
-    if (customer) {
-      customer.totalOrders += 1;
-      customer.totalSpent += pricing.totalPrice;
-      customer.city = city;
-    } else {
-      const sameCityCustomer = await Customer.findOne({
-        user: req.user._id,
-        city,
-      });
-      if (sameCityCustomer) {
-        customer = new Customer({
-          customerName: name,
-          phone,
-          city,
-          totalOrders: 1,
-          totalSpent: pricing.totalPrice,
-        });
-      } else {
-        customer = new Customer({
-          user: req.user._id,
-          customerName: name,
-          phone,
-          city,
-          totalOrders: 1,
-          totalSpent: pricing.totalPrice,
-        });
-        isNewCustomer = true;
-      }
-    }
-    await customer.save();
+    // const { email, name, phone, city } = shipmentDetails;
+    // let customer;
+    // customer = await Customer.findOne({
+    //   user: req.user._id,
+    //   customerName: name,
+    //   phone,
+    // });
+    // let isNewCustomer = false;
+    // if (customer) {
+    //   customer.totalOrders += 1;
+    //   customer.totalSpent += pricing.totalPrice;
+    //   customer.city = city;
+    // } else {
+    //   const sameCityCustomer = await Customer.findOne({
+    //     user: req.user._id,
+    //     city,
+    //   });
+    //   if (sameCityCustomer) {
+    //     customer = new Customer({
+    //       customerName: name,
+    //       phone,
+    //       city,
+    //       totalOrders: 1,
+    //       totalSpent: pricing.totalPrice,
+    //     });
+    //   } else {
+    //     customer = new Customer({
+    //       user: req.user._id,
+    //       customerName: name,
+    //       phone,
+    //       city,
+    //       totalOrders: 1,
+    //       totalSpent: pricing.totalPrice,
+    //     });
+    //     isNewCustomer = true;
+    //   }
+    // }
+    // await customer.save();
     const newOrder = new Order({
-      user: req.user._id,
-      store: store._id,
+      // user: req.user._id,
+      // store: store._id,
       name: customOrderName,
       products,
       tags,
@@ -75,15 +76,15 @@ const createOrder = async (req, res) => {
       shipperCity,
       shipmentDetails,
       pricing,
-      customer: customer._id,
+      // customer: customer._id,
       status,
     });
     await newOrder.save();
-    store.totalOrders = (store.totalOrders || 0) + 1;
-    if (isNewCustomer) {
-      store.totalCustomers = (store.totalCustomers || 0) + 1;
-    }
-    await store.save();
+    // store.totalOrders = (store.totalOrders || 0) + 1;
+    // if (isNewCustomer) {
+    //   store.totalCustomers = (store.totalCustomers || 0) + 1;
+    // }
+    // await store.save();
     res.status(201).json({
       success: true,
       message: "Order created successfully!",
@@ -102,7 +103,8 @@ const createOrder = async (req, res) => {
 
 const getAllOrder = async (req, res) => {
   try {
-    const orders = await Orders.find({ user: req.user._id });
+    // const orders = await Orders.find({ user: req.user._id });
+    const orders = await Order.find();
     if (!orders || orders.length === 0) {
       return res.status(200).json({
         orders: [],
