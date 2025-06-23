@@ -4,7 +4,7 @@ const createCategory = async (req, res) => {
   try {
     const { name, subCategory, description, status } = req.body;
     const category = new Category({
-    //   user: req.user._id,
+      user: req.user._id,
       name,
       description,
       status,
@@ -26,7 +26,7 @@ const createCategory = async (req, res) => {
 
 const getAllCategory = async (req, res) => {
   try {
-    const categories = await Category.find({}).sort({
+    const categories = await Category.find({ user: req.user._id }).sort({
       createdAt: -1,
     });
     res.status(200).json(categories);

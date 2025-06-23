@@ -7,7 +7,7 @@ const SubCategorySchema = new mongoose.Schema({
 
 const CategorySchema = new mongoose.Schema(
   {
-    // user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     name: { type: String, trim: true },
     subCategory: [SubCategorySchema],
     description: { type: String, trim: true },
