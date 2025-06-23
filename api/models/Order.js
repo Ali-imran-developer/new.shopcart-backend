@@ -88,7 +88,7 @@ const productSchema = new mongoose.Schema({
 const OrderSchema = new mongoose.Schema(
   {
     // user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    // store: { type: mongoose.Schema.Types.ObjectId, ref: "Store", required: true },
+    store: { type: mongoose.Schema.Types.ObjectId, ref: "Store" },
     name: { type: String, trim: true },
     paymentMethod: { type: String, trim: true, required: false },
     shipperCity: { type: String, trim: true, required: false },
@@ -97,11 +97,11 @@ const OrderSchema = new mongoose.Schema(
     promoCode: { type: String, trim: true },
     shipmentDetails: { type: ShipmentDetailsSchema, required: true },
     pricing: { type: PricingSchema, required: true },
-    // customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
+    customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
     status: { type: String, trim: true, required: true },
-    // trackingId: { type: String, trim: true, required: false, default: null },
-    // courierId: { type: mongoose.Schema.Types.ObjectId, ref: "Courier", default: null },
-    // shipperId: { type: mongoose.Schema.Types.ObjectId, ref: "ShipperInfo", default: null },
+    trackingId: { type: String, trim: true, required: false, default: null },
+    courierId: { type: mongoose.Schema.Types.ObjectId, ref: "Courier", default: null },
+    shipperId: { type: mongoose.Schema.Types.ObjectId, ref: "ShipperInfo", default: null },
     shipmentType: { type: String,  default: null },
   },
   { timestamps: true }

@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const authRouter = require("./auth/index");
 const OrderRouter = require("./orders/index");
 const CategoryRoute = require("./categories/index");
 const subCategoryRoutes = require("./subcategories/index");
@@ -21,6 +22,7 @@ dbConnect();
 app.use(express.json());
 app.use(cors());
 
+app.use("/api", authRouter);
 app.use("/api/orders", OrderRouter);
 app.use("/api/products", productRouter);
 app.use("/api/categories", CategoryRoute);

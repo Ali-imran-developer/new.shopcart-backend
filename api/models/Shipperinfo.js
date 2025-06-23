@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const shipperInfoSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    // user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     locationName: { type: String, required: true, trim: true },
     city: { type: String, required: true, trim: true },
     storeName: { type: String, required: true, trim: true },
@@ -13,5 +13,5 @@ const shipperInfoSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const ShipperInfo = mongoose.model("ShipperInfo", shipperInfoSchema);
+const ShipperInfo = mongoose.models.ShipperInfo || mongoose.model("ShipperInfo", shipperInfoSchema);
 module.exports = ShipperInfo;
