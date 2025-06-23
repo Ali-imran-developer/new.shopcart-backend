@@ -28,9 +28,9 @@ app.get("/", (req, res) => {
 });
 
 // require("./crones/order");
-app.listen(process.env.PORT, () => {
-  console.log(`Server is running on port ${process.env.PORT}`);
-});
+// app.listen(process.env.PORT, () => {
+//   console.log(`Server is running on port ${process.env.PORT}`);
+// });
 
 module.exports = app;
 module.exports.handler = serverless(app);
