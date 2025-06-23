@@ -4,6 +4,8 @@ const OrderRouter = require("./orders/index");
 const CategoryRoute = require("./categories/index");
 const productRouter = require("./products/index");
 const shipperInfo = require("./shipperinfo/index");
+const customerRouter = require("./customer/index");
+const storeRouter = require("./store/index");
 const testRoutes = require("./populate/index");
 const userRoutes = require("./users/index");
 const dbConnect = require("./dbConnect");
@@ -20,6 +22,8 @@ app.use("/api/orders", OrderRouter);
 app.use("/api/products", productRouter);
 app.use("/api/categories", CategoryRoute);
 app.use("/api/shipperinfo", shipperInfo);
+app.use("/api/customer", customerRouter);
+app.use("/api/store", storeRouter);
 app.use("/populate", testRoutes);
 app.use("/users", userRoutes);
 

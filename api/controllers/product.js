@@ -1,5 +1,5 @@
 const Product = require("../models/Product");
-// const Store = require("../models/store");
+const Store = require("../models/Store");
 const { ImageUploadUtil } = require("../utils/cloudinary");
 
 const handleImageUpload = async (req, res) => {
@@ -40,24 +40,24 @@ const createProduct = async (req, res) => {
       });
     }
     // let store = await Store.findOne({ user: req.user._id });
-    // if (!store) {
-    //   store = new Store({
-    //     user: req.user._id,
-    //     storeName: "Store Owner",
-    //     storeDomain: `${req.user._id.toString()}/Owner`,
-        
-    //     totalProducts: 1,
-    //     totalOrders: 0,
-    //     totalCustomers: 0,
-    //   });
-    //   await store.save();
-    // } else {
-    //   store.totalProducts += 1;
-    //   await store.save();
-    // }
+    let store = await Store.findOne();
+    if (!store) {
+      store = new Store({
+        // user: req.user._id,
+        storeName: "Store Owner",
+        storeDomain: `${Math.random().toString()}/Owner`,
+        totalProducts: 1,
+        totalOrders: 0,
+        totalCustomers: 0,
+      });
+      await store.save();
+    } else {
+      store.totalProducts += 1;
+      await store.save();
+    }
     const newProduct = new Product({
       // user: req.user._id,
-      // store: store._id,
+      store: store._id,
       name,
       description,
       price,
@@ -68,11 +68,13 @@ const createProduct = async (req, res) => {
       available,
     });
     await newProduct.save();
+    console.log(newProduct);
     res.status(201).json({
       success: true,
       message: "Product created successfully",
     });
   } catch (error) {
+    console.log(error);
     if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,
@@ -95,7 +97,7 @@ const createProduct = async (req, res) => {
 const getAllProducts = async (req, res) => {
   try {
     // const fetchProducts = await Product.find({ user: req.user._id });
-    const fetchProducts = await Product.find({ });
+    const fetchProducts = await Product.find();
     if (!fetchProducts || fetchProducts.length === 0) {
       return res.status(200).json({
         products: [],
@@ -232,11 +234,11 @@ const deleteProduct = async (req, res) => {
     //     .status(403)
     //     .json({ success: false, message: "Not authorized" });
     // }
-    // const store = await Store.findById(product.store);
-    // if (store) {
-    //   store.totalProducts = Math.max(store.totalProducts - 1, 0);
-    //   await store.save();
-    // }
+    const store = await Store.findById(product.store);
+    if (store) {
+      store.totalProducts = Math.max(store.totalProducts - 1, 0);
+      await store.save();
+    }
     await product.deleteOne();
     return res.status(200).json({
       success: true,
