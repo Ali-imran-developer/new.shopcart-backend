@@ -137,6 +137,7 @@ const getAllOrder = async (req, res) => {
         products: enrichedProductDetails,
       };
     });
+    console.log("Enriched Orders:", enrichedOrders);
     return res.status(200).json({
       success: true,
       orders: enrichedOrders,
