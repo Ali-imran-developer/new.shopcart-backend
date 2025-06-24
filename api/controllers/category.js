@@ -29,8 +29,10 @@ const getAllCategory = async (req, res) => {
     const categories = await Category.find({ user: req.user._id }).sort({
       createdAt: -1,
     });
+    console.log(categories);
     res.status(200).json(categories);
   } catch (err) {
+    console.log(err);
     res.status(500).json({ error: err.message });
   }
 };
