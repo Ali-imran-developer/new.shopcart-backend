@@ -3,6 +3,9 @@ const Category = require("../models/Category");
 const createCategory = async (req, res) => {
   try {
     const { name, subCategory, description, status } = req.body;
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ success: false, message: "Unauthorized access" });
+    }
     const category = new Category({
       user: req.user._id,
       name,
