@@ -48,11 +48,6 @@ const updateCategory = async (req, res) => {
     if (!category){
       return res.status(404).json({ message: "Category not found" });
     }
-    // if (!category.user.equals(req.user._id)) {
-    //   return res
-    //     .status(403)
-    //     .json({ success: false, message: "Not authorized" });
-    // }
     if (name) category.name = name;
     if (subCategoryId && subCategoryName) {
       const sub = category.subCategory.id(subCategoryId);
@@ -78,6 +73,7 @@ const updateCategory = async (req, res) => {
     await category.save();
     res.status(200).json(category);
   } catch (err) {
+    console.log(err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -89,11 +85,6 @@ const deleteCategory = async (req, res) => {
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
     }
-    // if (!category.user.equals(req.user._id)) {
-    //   return res
-    //     .status(403)
-    //     .json({ success: false, message: "Not authorized" });
-    // }
     res.status(200).json({ message: "Category deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });

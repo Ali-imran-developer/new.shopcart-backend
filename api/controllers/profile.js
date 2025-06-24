@@ -22,6 +22,9 @@ const handleImageUpload = async (req, res) => {
 const createProfile = async (req, res) => {
   try {
     const { name, email, phoneNumber, address, image } = req.body;
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ success: false, message: "Unauthorized access" });
+    }
     if (!name || !email) {
       return res.status(400).json({
         success: false,
@@ -29,7 +32,7 @@ const createProfile = async (req, res) => {
       });
     }
     const profile = new Profile({
-    //   user: req.user._id,
+      user: req.user._id,
       name,
       email,
       phoneNumber,
@@ -57,8 +60,8 @@ const createProfile = async (req, res) => {
 
 const getProfile = async (req, res) => {
   try {
-    // const fetchProfile = await Profile.findOne({ user: req.user._id });
-    const fetchProfile = await Profile.findOne();
+    const fetchProfile = await Profile.findOne({ user: req?.user?._id });
+    console.log(fetchProfile);
     if (!fetchProfile || fetchProfile?.length === 0) {
       return res.status(200).json({
         profile: {},
@@ -70,6 +73,7 @@ const getProfile = async (req, res) => {
       profile: fetchProfile,
     });
   } catch (error) {
+    console.log(error);
     if (error.name === "CastError") {
       return res.status(400).json({
         success: false,
@@ -100,6 +104,7 @@ const updateProfile = async (req, res) => {
       });
     }
     const findProfile = await Profile.findById(id);
+    console.log(findProfile);
     if (!findProfile) {
       return res.status(404).json({
         success: false,
