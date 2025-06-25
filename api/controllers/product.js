@@ -39,11 +39,11 @@ const createProduct = async (req, res) => {
         message: "Please provide all the required fields",
       });
     }
-    // let store = await Store.findOne({ user: req.user._id });
-    let store = await Store.findOne();
+    let store = await Store.findOne({ user: req.user._id });
+    // let store = await Store.findOne();
     if (!store) {
       store = new Store({
-        // user: req.user._id,
+        user: req.user._id,
         storeName: "Store Owner",
         storeDomain: `${Math.random().toString()}/Owner`,
         totalProducts: 1,
@@ -56,7 +56,7 @@ const createProduct = async (req, res) => {
       await store.save();
     }
     const newProduct = new Product({
-      // user: req.user._id,
+      user: req.user._id,
       store: store._id,
       name,
       description,
@@ -96,8 +96,8 @@ const createProduct = async (req, res) => {
 
 const getAllProducts = async (req, res) => {
   try {
-    // const fetchProducts = await Product.find({ user: req.user._id });
-    const fetchProducts = await Product.find();
+    const fetchProducts = await Product.find({ user: req.user._id });
+    // const fetchProducts = await Product.find();
     if (!fetchProducts || fetchProducts.length === 0) {
       return res.status(200).json({
         products: [],

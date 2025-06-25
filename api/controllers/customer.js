@@ -4,13 +4,24 @@ const Store = require("../models/Store");
 const createCustomer = async (req, res) => {
   try {
     const { customerName, phone, city, totalOrders, totalSpent } = req.body;
-    // const store = await Store.findOne({ user: req.user._id });
-    const store = await Store.findOne();
+    const store = await Store.findOne({ user: req.user._id });
+    // const store = await Store.findOne();
     if (!store) {
       return res.status(404).json({ success: false, message: "Store not found" });
     }
+    const existingCustomer = await Customer.findOne({
+      customerName,
+      city,
+      user: req.user._id,
+    });
+    if (existingCustomer) {
+      return res.status(200).json({
+        success: false,
+        message: "Customer already exists with the same name and city",
+      });
+    }
     const newCustomer = new Customer({
-    //   user: req.user._id,
+      user: req.user._id,
       store: store._id,
       customerName,
       phone,
@@ -47,8 +58,8 @@ const createCustomer = async (req, res) => {
 
 const getAllCustomer = async (req, res) => {
   try {
-    // const fetchCustomer = await Customer.find({ user: req.user._id });
-    const fetchCustomer = await Customer.find();
+    const fetchCustomer = await Customer.find({ user: req.user._id });
+    // const fetchCustomer = await Customer.find();
     if (!fetchCustomer || fetchCustomer?.length === 0) {
       return res.status(200).json({
         customer: [],

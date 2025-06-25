@@ -11,7 +11,7 @@ const createShipperInfo = async (req, res) => {
       returnAddress,
     } = req.body;
     const newShipperInfo = new ShipperInfo({
-    //   user: req.user._id,
+      user: req.user._id,
       locationName,
       city,
       storeName,
@@ -41,8 +41,8 @@ const createShipperInfo = async (req, res) => {
 
 const getShipperInfo = async (req, res) => {
   try {
-    // const shipperInfo = await ShipperInfo.find({ user: req.user._id });
-    const shipperInfo = await ShipperInfo.find();
+    const shipperInfo = await ShipperInfo.find({ user: req.user._id });
+    // const shipperInfo = await ShipperInfo.find();
     if (!shipperInfo || shipperInfo.length === 0) {
       return res.status(200).json({
         shipper: [],

@@ -1,6 +1,3 @@
-// const path = require("path");
-// const fs = require("fs");
-// const responsePath = path.join(__dirname, "../logs/order-response.json");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const Customer = require("../models/Customer");
@@ -22,8 +19,8 @@ const createOrder = async (req, res) => {
       status,
     } = req.body;
 
-    // const store = await Store.findOne({ user: req.user._id });
-    const store = await Store.findOne();
+    const store = await Store.findOne({ user: req.user._id });
+    // const store = await Store.findOne();
     if (!store) {
       return res.status(404).json({
         success: false,
@@ -35,7 +32,7 @@ const createOrder = async (req, res) => {
     const { email, name, phone, city } = shipmentDetails;
     let customer;
     customer = await Customer.findOne({
-      // user: req.user._id,
+      user: req.user._id,
       customerName: name,
       phone,
     });
@@ -46,7 +43,7 @@ const createOrder = async (req, res) => {
       customer.city = city;
     } else {
       const sameCityCustomer = await Customer.findOne({
-        // user: req.user._id,
+        user: req.user._id,
         city,
       });
       if (sameCityCustomer) {
@@ -59,7 +56,7 @@ const createOrder = async (req, res) => {
         });
       } else {
         customer = new Customer({
-          // user: req.user._id,
+          user: req.user._id,
           customerName: name,
           phone,
           city,
@@ -71,7 +68,7 @@ const createOrder = async (req, res) => {
     }
     await customer.save();
     const newOrder = new Order({
-      // user: req.user._id,
+      user: req.user._id,
       store: store._id,
       name: customOrderName,
       products,
@@ -108,8 +105,8 @@ const createOrder = async (req, res) => {
 
 const getAllOrder = async (req, res) => {
   try {
-    // const orders = await Orders.find({ user: req.user._id });
-    const orders = await Order.find();
+    const orders = await Order.find({ user: req.user._id });
+    // const orders = await Order.find();
     if (!orders || orders.length === 0) {
       return res.status(200).json({
         orders: [],
@@ -166,12 +163,19 @@ const updateOrder = async (req, res) => {
   try {
     const { id } = req.params;
     const { shipmentDetails } = req.body;
+    console.log(id, shipmentDetails);
     if (!id || id.length !== 24) {
       return res.status(400).json({
         success: false,
         message: "Invalid Order ID",
       });
     }
+    if(!shipmentDetails){
+      return res.status(404).json({
+        success: false,
+        message: "ShipmentDetails is required!"
+      })
+    };
     const order = await Order.findById(id);
     if (!order) {
       return res.status(404).json({
@@ -195,8 +199,7 @@ const updateOrder = async (req, res) => {
       order,
     });
   } catch (error) {
-    console.error(error);
-
+    console.log(error);
     if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,
@@ -323,7 +326,7 @@ const updateStatus = async (req, res) => {
       updatedOrder: order,
     });
   } catch (error) {
-    console.error(error);
+    console.log(error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -338,12 +341,12 @@ const bookingOrder = async (req, res) => {
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
-    // if (!order.user.equals(userId)) {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: "Not authorized to book this order",
-    //   });
-    // }
+    if (!order.user.equals(req.user._id)) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to book this order",
+      });
+    }
     const courierPayload = {
       payment_method: order.paymentMethod?.toUpperCase() || "COD",
       total: order.pricing?.totalPrice || 0,
@@ -409,8 +412,8 @@ const bookingOrder = async (req, res) => {
 
 const getBookingOrder = async (req, res) => {
   try {
-    // const bookedOrders = await Order.find({ user: req.user._id, status: "booked" });
-    const bookedOrders = await Order.find({ status: "booked" });
+    const bookedOrders = await Order.find({ user: req.user._id, status: "booked" });
+    // const bookedOrders = await Order.find({ status: "booked" });
     if (!bookedOrders || bookedOrders.length === 0) {
       return res.status(200).json({
         bookedOrders: [],

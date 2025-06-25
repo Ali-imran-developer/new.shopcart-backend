@@ -22,8 +22,8 @@ const handleImageUpload = async (req, res) => {
 
 const getAllStore = async (req, res) => {
   try {
-    // const fetchStore = await Store.find({ user: req.user._id });
-    const fetchStore = await Store.find();
+    const fetchStore = await Store.find({ user: req.user._id });
+    // const fetchStore = await Store.find();
     if (!fetchStore || fetchStore.length === 0) {
       return res.status(200).json({
         store: [],
@@ -65,11 +65,11 @@ const updateStore = async (req, res) => {
         message: "Store not found",
       });
     }
-    // if (!findStore.user.equals(req.user._id)) {
-    //   return res
-    //     .status(403)
-    //     .json({ success: false, message: "Not authorized" });
-    // }
+    if (!findStore.user.equals(req.user._id)) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
+    }
     if (storeName !== undefined) findStore.storeName = storeName;
     if (storeDomain !== undefined) findStore.storeDomain = storeDomain;
     if (storeLogo !== undefined) findStore.storeLogo = storeLogo;

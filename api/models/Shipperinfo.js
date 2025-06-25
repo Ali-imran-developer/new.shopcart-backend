@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const shipperInfoSchema = new mongoose.Schema(
   {
-    // user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     locationName: { type: String, required: true, trim: true },
     city: { type: String, required: true, trim: true },
     storeName: { type: String, required: true, trim: true },

@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const CustomerSchema = new mongoose.Schema(
   {
-    // user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     store: { type: mongoose.Schema.Types.ObjectId, ref: "Store" },
     customerName: { type: String, trim: true, required: true, },
     phone: { type: Number, required: true, required: false, },
