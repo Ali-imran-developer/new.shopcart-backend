@@ -1,4 +1,5 @@
 const Courier = require("../models/Courier");
+const CourierCreds = require("../models/Courier-creds");
 const { ImageUploadUtil } = require("../utils/cloudinary");
 
 const handleImageUpload = async (req, res) => {
@@ -30,7 +31,7 @@ const createCourier = async (req, res) => {
       });
     }
     const newCourier = new Courier({
-    //   user: req.user._id,
+      //   user: req.user._id,
       name,
       isDefault,
       logo,
@@ -166,10 +167,155 @@ const deleteCourier = async (req, res) => {
   }
 };
 
+const courierCreds = async (req, res) => {
+  try {
+    const { courierId, courierName, apiKey, apiPassword, isDefault } = req.body;
+    if (!courierId || !apiKey) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide courierId, apiKey, and apiPassword",
+      });
+    }
+    const courierExists = await Courier.findById(courierId);
+    if (!courierExists) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Courier not found" });
+    }
+    const existingCreds = await CourierCreds.findOne({
+      user: req.user._id,
+      courier: courierId,
+    });
+    let savedCreds;
+    if (existingCreds) {
+      existingCreds.apiKey = apiKey;
+      existingCreds.apiPassword = apiPassword;
+      savedCreds = await existingCreds.save();
+    } else {
+      savedCreds = await CourierCreds.create({
+        user: req.user._id,
+        courier: courierId,
+        couriersname: courierName,
+        apiKey,
+        apiPassword,
+        isDefault,
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Courier credentials saved successfully",
+      creds: savedCreds,
+    });
+  } catch (error) {
+    console.error("Error saving courier creds:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+const getCourierCreds = async (req, res) => {
+  try {
+    const fetchCourierCreds = await CourierCreds.find({ user: req.user._id });
+    if (!fetchCourierCreds) {
+      return res.status(200).json({
+        creds: [],
+        message: "No courierCreds found",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      creds: fetchCourierCreds,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+const deleteCourierCreds = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id || id.length !== 24) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid courier credential ID!",
+      });
+    }
+    const creds = await CourierCreds.findOne({ _id: id, user: req.user._id });
+    if (!creds) {
+      return res.status(404).json({
+        success: false,
+        message: "Courier credentials not found for this user.",
+      });
+    }
+    await CourierCreds.findByIdAndDelete(id);
+    return res.status(200).json({
+      success: true,
+      message: "Courier credentials deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Error deleting courier creds:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+    });
+  }
+};
+
+const defaultCourier = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isDefault } = req.body;
+    if (!id || id.length !== 24) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid courier credential ID!",
+      });
+    }
+    const creds = await CourierCreds.findOne({ _id: id, user: req.user._id });
+    if (!creds) {
+      return res.status(404).json({
+        success: false,
+        message: "Courier credential not found for this user.",
+      });
+    }
+    if (isDefault === true) {
+      await CourierCreds.updateMany(
+        { user: req.user._id, _id: { $ne: id } },
+        { $set: { isDefault: false } }
+      );
+    }
+    creds.isDefault = isDefault;
+    await creds.save();
+    return res.status(200).json({
+      success: true,
+      message: isDefault
+        ? "Courier credential set as default."
+        : "Courier credential unset as default.",
+      data: creds,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server error",
+    });
+  }
+};
+
 module.exports = {
   handleImageUpload,
   createCourier,
   getAllCourier,
   updateCourier,
   deleteCourier,
+  courierCreds,
+  getCourierCreds,
+  deleteCourierCreds,
+  defaultCourier,
 };

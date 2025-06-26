@@ -6,19 +6,19 @@ const registerUser = async (req, res) => {
   const { userName, email, password } = req.body;
   try {
     const checkUser = await User.findOne({ email });
-    if (checkUser){
+    if (checkUser) {
       return res.status(409).json({
         success: false,
-        message: "User Already exists with the same email! Please try again",
+        message: "User Already exists!",
       });
-    };
+    }
     const checkUserName = await User.findOne({ userName });
     if (checkUserName) {
       return res.status(409).json({
         success: false,
-        message: "Username is already taken. Please choose another one.",
+        message: "Username already taken!",
       });
-    };
+    }
     const hashPassword = await bcrypt.hash(password, 12);
     const newUser = new User({
       userName,
@@ -85,22 +85,16 @@ const loginUser = async (req, res) => {
       message: "Logged in successfully",
       token,
       user: {
-        id: checkUser._id,
-        email: checkUser.email,
-        userName: checkUser.userName,
-        role: checkUser.role,
+        _id: checkUser._id,
+        email: checkUser.email || "",
+        userName: checkUser.userName || "",
+        role: checkUser.role || "",
+        name: checkUser.name || "",
+        address: checkUser.address || "",
+        image: checkUser.image || "",
+        phoneNumber: checkUser.phoneNumber || "",
       },
     });
-    // res.cookie("token", token, { httpOnly: true, secure: false }).json({
-    //   success: true,
-    //   message: "Logged in successfully",
-    //   user: {
-    //     email: checkUser.email,
-    //     role: checkUser.role,
-    //     id: checkUser._id,
-    //     userName: checkUser.userName,
-    //   },
-    // });
   } catch (e) {
     console.log(e);
     res.status(500).json({
@@ -110,51 +104,41 @@ const loginUser = async (req, res) => {
   }
 };
 
-// const logoutUser = (req, res) => {
-//   res.clearCookie("token").json({
-//     success: true,
-//     message: "Logged out successfully!",
-//   });
-// };
-
-const authMiddleware = async (req, res, next) => {
-  const token = req.cookies.token;
-  if (!token)
-    return res.status(401).json({
-      success: false,
-      message: "Unauthorised user!",
-    });
+const updateUser = async (req, res) => {
   try {
-    const decoded = jwt.verify(token, process.env.CLIENT_SECRET_KEY);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    res.status(401).json({
-      success: false,
-      message: "Unauthorised user!",
-    });
-  }
-};
-
-const checkAuth = async (req, res) => {
-  try {
-    const token = req.cookies.token;
-    if (!token) {
-      return res.status(401).json({ isLoggedIn: false });
-    }
-    const decoded = jwt.verify(token, "CLIENT_SECRET_KEY");
-    return res.status(200).json({
-      isLoggedIn: true,
-      user: {
-        email: decoded.email,
-        id: decoded.id,
-        userName: decoded.userName,
-        role: decoded.role,
+    const { id } = req.params;
+    const { address, email, image, name, phoneNumber } = req.body;
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          address: address || "",
+          email: email || "",
+          image: image || "",
+          name: name || "",
+          phoneNumber: phoneNumber || "",
+        },
       },
+      { new: true }
+    );
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found!",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      user: updatedUser,
     });
   } catch (error) {
-    return res.status(401).json({ isLoggedIn: false });
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
-module.exports = { checkAuth, registerUser, loginUser, authMiddleware };
+module.exports = { registerUser, loginUser, updateUser };
