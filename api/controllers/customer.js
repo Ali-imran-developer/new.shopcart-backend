@@ -59,7 +59,6 @@ const createCustomer = async (req, res) => {
 const getAllCustomer = async (req, res) => {
   try {
     const fetchCustomer = await Customer.find({ user: req.user._id });
-    // const fetchCustomer = await Customer.find();
     if (!fetchCustomer || fetchCustomer?.length === 0) {
       return res.status(200).json({
         customer: [],
