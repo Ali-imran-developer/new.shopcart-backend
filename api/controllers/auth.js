@@ -160,7 +160,7 @@ const forgetPassword = async (req, res) => {
         pass: process.env.EMAIL_PASS,
       },
     });
-    const resetLink = `https://shopcart-frontend.vercel.app/reset-password/${resetToken}`;
+    const resetLink = `https://shopcart-frontend-six.vercel.app/reset-password/${resetToken}`;
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: user.email,
