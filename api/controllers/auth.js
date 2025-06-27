@@ -148,7 +148,6 @@ const forgetPassword = async (req, res) => {
     const { email } = req.body;
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "Email not found" });
-    // const code = Math.floor(100000 + Math.random() * 900000).toString();
     const resetToken = crypto.randomBytes(32).toString("hex");
     const expiry = new Date(Date.now() + 15 * 60 * 1000);
     user.resetCode = resetToken;
@@ -178,32 +177,6 @@ const forgetPassword = async (req, res) => {
   }
 };
 
-// const verifyCode = async (req, res) => {
-//   try {
-//     const { email, code } = req.body;
-//     const user = await User.findOne({ email });
-//     if (!user) {
-//       return res.status(404).json({ message: "Email not found" });
-//     }
-//     if(!email || !code){
-//       return res.status(403).json({message: "Both email and code is required!"});
-//     }
-//     if (user?.resetCode !== code) {
-//       return res.status(400).json({ message: "Wrong reset code!" });
-//     }
-//     // if (user.resetCode !== code || new Date(user.resetCodeExpiry).getTime() < Date.now()) {
-//     //   return res.status(400).json({ message: "Code is expired now!" });
-//     // }
-//     res.json({ message: "Code is verified, you may proceed now!" });
-//   } catch (error) {
-//     console.log(error);
-//     return res.status(500).json({
-//       success: false,
-//       message: "Internal server error",
-//     });
-//   }
-// };
-
 const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
@@ -214,20 +187,9 @@ const resetPassword = async (req, res) => {
       resetCode: token,
       resetCodeExpiry: { $gt: Date.now() },
     });
-    // const { email, code, newPassword } = req.body;
-    // const user = await User.findOne({ email });
-    // if (!user || user.resetCode !== code || user.resetCodeExpiry < Date.now()) {
-    //   return res.status(400).json({ message: "Invalid or expired code" });
-    // }
     if (!user) {
       return res.status(400).json({ message: "Invalid or expired token" });
     }
-    // if(!email || !code || !newPassword){
-    //   return res.status(403).json({message: "Both email, code and newPassword is required!"});
-    // }
-    // if (user?.resetCode !== code) {
-    //   return res.status(400).json({ message: "Wrong reset code!" });
-    // }
     const isSamePassword = await bcrypt.compare(newPassword, user.password);
     if (isSamePassword) {
       return res.status(400).json({ message: "Cannot use same password!" });
@@ -251,6 +213,5 @@ module.exports = {
   loginUser,
   updateUser,
   forgetPassword,
-  // verifyCode,
   resetPassword,
 };
