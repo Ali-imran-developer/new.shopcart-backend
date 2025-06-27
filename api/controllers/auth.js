@@ -1,6 +1,8 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 
 const registerUser = async (req, res) => {
   const { userName, email, password } = req.body;
@@ -64,12 +66,12 @@ const loginUser = async (req, res) => {
       password,
       checkUser.password
     );
-    if (!checkPasswordMatch){
+    if (!checkPasswordMatch) {
       return res.json({
         success: false,
         message: "Incorrect password! Please try again",
       });
-    };
+    }
     const token = jwt.sign(
       {
         userId: checkUser._id,
@@ -141,4 +143,114 @@ const updateUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, updateUser };
+const forgetPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "Email not found" });
+    // const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const expiry = new Date(Date.now() + 15 * 60 * 1000);
+    user.resetCode = resetToken;
+    user.resetCodeExpiry = expiry;
+    await user.save();
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+    const resetLink = `https://shopcart-frontend.vercel.app/reset-password/${resetToken}`;
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "Password Reset Code",
+      html: `<p>Click the link below to reset your password:</p><a href="${resetLink}">${resetLink}</a>`,
+    });
+    res.json({ message: "Reset code sent to email" });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+// const verifyCode = async (req, res) => {
+//   try {
+//     const { email, code } = req.body;
+//     const user = await User.findOne({ email });
+//     if (!user) {
+//       return res.status(404).json({ message: "Email not found" });
+//     }
+//     if(!email || !code){
+//       return res.status(403).json({message: "Both email and code is required!"});
+//     }
+//     if (user?.resetCode !== code) {
+//       return res.status(400).json({ message: "Wrong reset code!" });
+//     }
+//     // if (user.resetCode !== code || new Date(user.resetCodeExpiry).getTime() < Date.now()) {
+//     //   return res.status(400).json({ message: "Code is expired now!" });
+//     // }
+//     res.json({ message: "Code is verified, you may proceed now!" });
+//   } catch (error) {
+//     console.log(error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Internal server error",
+//     });
+//   }
+// };
+
+const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: "Token and new password required" });
+    }
+    const user = await User.findOne({
+      resetCode: token,
+      resetCodeExpiry: { $gt: Date.now() },
+    });
+    // const { email, code, newPassword } = req.body;
+    // const user = await User.findOne({ email });
+    // if (!user || user.resetCode !== code || user.resetCodeExpiry < Date.now()) {
+    //   return res.status(400).json({ message: "Invalid or expired code" });
+    // }
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+    // if(!email || !code || !newPassword){
+    //   return res.status(403).json({message: "Both email, code and newPassword is required!"});
+    // }
+    // if (user?.resetCode !== code) {
+    //   return res.status(400).json({ message: "Wrong reset code!" });
+    // }
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({ message: "Cannot use same password!" });
+    }
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetCode = null;
+    user.resetCodeExpiry = null;
+    await user.save();
+    res.json({ message: "Password reset successful" });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+  updateUser,
+  forgetPassword,
+  // verifyCode,
+  resetPassword,
+};

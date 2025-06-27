@@ -9,6 +9,8 @@ const UserSchema = new mongoose.Schema({
   address: { type: String, default: "" },
   image: { type: String, default: "" },
   phoneNumber: { type: String, default: "" },
+  resetCode: { type: String, default: null },
+  resetCodeExpiry: { type: Date, default: null },
 });
 
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
