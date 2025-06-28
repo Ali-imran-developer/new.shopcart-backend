@@ -52,37 +52,3 @@
   },
 ];
 
-[
-  {
-    id: 7798052749382,
-    title: "computer setup",
-    body_html: "<p>computer setup</p>",
-    vendor: "dev-shopilam",
-    product_type: "",
-    created_at: "2025-02-20T16:14:19-05:00",
-    handle: "computer-setup",
-    updated_at: "2025-06-18T11:50:51-04:00",
-    published_at: "2025-02-20T16:14:19-05:00",
-    template_suffix: "",
-    published_scope: "global",
-    tags: "",
-    status: "active",
-    admin_graphql_api_id: "gid://shopify/Product/7798052749382",
-    variants: [[Object]],
-    options: [[Object]],
-    images: [[Object]],
-    image: {
-      id: 33756711878726,
-      alt: null,
-      position: 1,
-      product_id: 7798052749382,
-      created_at: "2025-02-20T16:13:05-05:00",
-      updated_at: "2025-02-20T16:13:06-05:00",
-      admin_graphql_api_id: "gid://shopify/ProductImage/33756711878726",
-      width: 1040,
-      height: 780,
-      src: "https://cdn.shopify.com/s/files/1/0645/6419/9494/files/WhatsAppImage2025-02-11at17.59.39_9d76cc2c.jpg?v=1740085986",
-      variant_ids: [],
-    },
-  },
-];
