@@ -22,6 +22,9 @@ const app = express();
 dbConnect();
 app.use(cors());
 
+app.use("/api/stripe", stripeRouter);
+app.use(express.json());
+
 app.use("/api", authRouter);
 app.use("/api/orders", OrderRouter);
 app.use("/api/products", productRouter);
@@ -34,13 +37,11 @@ app.use("/api/courier", courierRouter);
 app.use("/api/profile", ProfileRouter);
 app.use("/populate", testRoutes);
 app.use("/users", userRoutes);
-app.use("/api/stripe", stripeRouter);
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-app.use(express.json());
 // require("./crones/order");
 // app.listen(process.env.PORT, () => {
 //   console.log(`Server is running on port ${process.env.PORT}`);
