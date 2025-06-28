@@ -21,9 +21,6 @@ const path = require("path");
 const app = express();
 dbConnect();
 app.use(cors());
-
-app.use("/api/stripe", stripeRouter);
-
 app.use(express.json());
 
 app.use("/api", authRouter);
@@ -38,6 +35,7 @@ app.use("/api/courier", courierRouter);
 app.use("/api/profile", ProfileRouter);
 app.use("/populate", testRoutes);
 app.use("/users", userRoutes);
+app.use("/api/stripe", stripeRouter);
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
