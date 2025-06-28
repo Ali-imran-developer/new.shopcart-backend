@@ -15,15 +15,12 @@ const testRoutes = require("./populate/index");
 const userRoutes = require("./users/index");
 const dbConnect = require("./dbConnect");
 const serverless = require("serverless-http");
-const bodyParser = require("body-parser");
 require("dotenv").config();
 const path = require("path");
 
 const app = express();
 dbConnect();
-app.use(express.json());
 app.use(cors());
-app.use(bodyParser.raw({ type: "application/json" }));
 
 app.use("/api", authRouter);
 app.use("/api/orders", OrderRouter);
@@ -42,6 +39,8 @@ app.use("/api/stripe", stripeRouter);
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
+
+app.use(express.json());
 
 // require("./crones/order");
 // app.listen(process.env.PORT, () => {
