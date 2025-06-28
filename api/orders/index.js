@@ -13,10 +13,12 @@ const {
   getMonthlyOrdersSummary,
   getOrderStatsByVendor,
   getTopSellingProducts,
+  getDashboardStats,
 } = require("../controllers/order");
 
 router.post("/create", protect, createOrder);
 router.get("/get", protect, getAllOrder);
+router.get("/dashboard-stats", protect, getDashboardStats);
 router.put("/update/:id", updateOrder);
 router.delete("/delete/:id", deleteOrder);
 router.put("/status/update/:id", updateStatus);

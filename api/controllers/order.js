@@ -5,6 +5,7 @@ const Store = require("../models/Store");
 const ShipperInfo = require("../models/Shipperinfo");
 const Courier = require("../models/Courier");
 const axios = require("axios");
+const mongoose = require("mongoose");
 
 const createOrder = async (req, res) => {
   try {
@@ -19,8 +20,10 @@ const createOrder = async (req, res) => {
       status,
     } = req.body;
 
-    const store = await Store.findOne({ user: req.user._id });
-    // const store = await Store.findOne();
+    const store = await Store.findOne({ user: req?.user?._id });
+    console.log("REQ USER:", req.user);
+    console.log("REQ USER ID:", req.user?._id);
+    console.log(store);
     if (!store) {
       return res.status(404).json({
         success: false,
@@ -170,12 +173,12 @@ const updateOrder = async (req, res) => {
         message: "Invalid Order ID",
       });
     }
-    if(!shipmentDetails){
+    if (!shipmentDetails) {
       return res.status(404).json({
         success: false,
-        message: "ShipmentDetails is required!"
-      })
-    };
+        message: "ShipmentDetails is required!",
+      });
+    }
     const order = await Order.findById(id);
     if (!order) {
       return res.status(404).json({
@@ -339,7 +342,7 @@ const bookingOrder = async (req, res) => {
   try {
     const order = await Order.findById(orderId);
     if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
+      return res.status(404).json({ message: "Order not found" });
     }
     if (!order.user.equals(req.user._id)) {
       return res.status(403).json({
@@ -354,7 +357,8 @@ const bookingOrder = async (req, res) => {
       subtotal: order.pricing?.subTotal || 0,
       shipping_name: order.shipmentDetails?.name || "",
       email: order.shipmentDetails?.email || "",
-      shipping_phone: `+92${order.shipmentDetails?.phone?.replace(/^0/, "")}` || "",
+      shipping_phone:
+        `+92${order.shipmentDetails?.phone?.replace(/^0/, "")}` || "",
       shipping_street: order.shipmentDetails?.address || "",
       shipping_company: "shopCart",
       shipping_city: order.shipmentDetails?.city || "",
@@ -366,16 +370,17 @@ const bookingOrder = async (req, res) => {
       })),
       shipping_address1: order.shipmentDetails?.address || "",
       created_at: new Date(order.createdAt).toISOString(),
-      account_id: "q6398070"
+      account_id: "q6398070",
     };
 
-    const response = await axios.post('http://honeybeecourier.com/api/v10/parcels/booking',
+    const response = await axios.post(
+      "http://honeybeecourier.com/api/v10/parcels/booking",
       courierPayload,
       {
         headers: {
-          'apiKey': 'HBC_0xGhUiqkNtziEPaeUZnt6ghy',
-          'Content-Type': 'application/json'
-        }
+          apiKey: "HBC_0xGhUiqkNtziEPaeUZnt6ghy",
+          "Content-Type": "application/json",
+        },
       }
     );
 
@@ -402,17 +407,23 @@ const bookingOrder = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Courier Booking Error:', error.response?.data || error.message);
+    console.error(
+      "Courier Booking Error:",
+      error.response?.data || error.message
+    );
     return res.status(500).json({
-      message: 'Failed to book order with courier',
-      error: error.response?.data || error.message
+      message: "Failed to book order with courier",
+      error: error.response?.data || error.message,
     });
   }
 };
 
 const getBookingOrder = async (req, res) => {
   try {
-    const bookedOrders = await Order.find({ user: req.user._id, status: "booked" });
+    const bookedOrders = await Order.find({
+      user: req.user._id,
+      status: "booked",
+    });
     // const bookedOrders = await Order.find({ status: "booked" });
     if (!bookedOrders || bookedOrders.length === 0) {
       return res.status(200).json({
@@ -425,8 +436,12 @@ const getBookingOrder = async (req, res) => {
     );
     const uniqueProductIds = [...new Set(allProductIds)];
     const allProducts = await Product.find({ _id: { $in: uniqueProductIds } });
-    const courierIds = bookedOrders.map(order => order.courierId).filter(id => id);
-    const shipperIds = bookedOrders.map(order => order.shipperId).filter(id => id);
+    const courierIds = bookedOrders
+      .map((order) => order.courierId)
+      .filter((id) => id);
+    const shipperIds = bookedOrders
+      .map((order) => order.shipperId)
+      .filter((id) => id);
 
     const allCouriers = await Courier.find({ _id: { $in: courierIds } });
     const allShippers = await ShipperInfo.find({ _id: { $in: shipperIds } });
@@ -447,8 +462,12 @@ const getBookingOrder = async (req, res) => {
         })
         .filter(Boolean);
 
-      const courierData = allCouriers.find(c => c._id.equals(order.courierId));
-      const shipperData = allShippers.find(s => s._id.equals(order.shipperId));
+      const courierData = allCouriers.find((c) =>
+        c._id.equals(order.courierId)
+      );
+      const shipperData = allShippers.find((s) =>
+        s._id.equals(order.shipperId)
+      );
 
       return {
         ...order.toObject(),
@@ -463,7 +482,6 @@ const getBookingOrder = async (req, res) => {
       success: true,
       bookOrders,
     });
-
   } catch (error) {
     console.error("Get Booking Order Error:", error);
     return res.status(500).json({
@@ -530,7 +548,7 @@ const getMonthlyOrdersSummary = async (req, res) => {
 // Top Selling Products
 const getTopSellingProducts = async (req, res) => {
   try {
-    const result = await Orders.aggregate([
+    const result = await Order.aggregate([
       { $unwind: "$lineItems" },
       {
         $group: {
@@ -565,6 +583,61 @@ const getCustomerOrderCounts = async (req, res) => {
   }
 };
 
+const getDashboardStats = async (req, res) => {
+  try {
+    const openOrders = await Order.find({ user: req.user._id });
+    const totalSales = openOrders.reduce((sum, order) => {
+      return sum + (order.pricing?.totalPrice || 0);
+    }, 0);
+    const totalRevenue = openOrders.reduce((sum, order) => {
+      return (sum + ((order.pricing?.subTotal || 0) + (order.pricing?.orderTax || 0)));
+    }, 0);
+    const topProductStats = await Order.aggregate([
+      { $match: { user: new mongoose.Types.ObjectId(req.user._id) } },
+      { $unwind: "$products" },
+      {
+        $group: {
+          _id: "$products.productId",
+          totalSold: { $sum: "$products.productQty" },
+        },
+      },
+      { $match: { totalSold: { $gte: 5 } } },
+      { $sort: { totalSold: -1 } },
+      { $limit: 5 },
+    ]);
+
+    const topProductIds = topProductStats.map((item) => item._id);
+    const allProducts = await Product.find({ _id: { $in: topProductIds } });
+    const topProducts = topProductStats.map((stat) => {
+      const productData = allProducts.find((p) => p._id.equals(stat._id));
+      return productData ? { product: productData, totalSold: stat.totalSold } : null;
+    }).filter(Boolean);
+    res.json({
+      newOrders: {
+        todayOrders: openOrders.length,
+        id: 1,
+        totalPercentage: Number((Math.random() * 100).toFixed(2)),
+      },
+      totalSales: {
+        totalSales: totalSales,
+        id: 2,
+        totalPercentage: Number((Math.random() * 100).toFixed(2)),
+      },
+      totalRevenue: {
+        totalRevenue: totalRevenue,
+        id: 3,
+        totalPercentage: Number((Math.random() * 100).toFixed(2)),
+      },
+      topProducts,
+    });
+  } catch (error) {
+    console.error("Dashboard stats error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch dashboard stats" });
+  }
+};
+
 module.exports = {
   createOrder,
   getAllOrder,
@@ -573,6 +646,7 @@ module.exports = {
   updateStatus,
   bookingOrder,
   getBookingOrder,
+  getDashboardStats,
   getOrderStatsByVendor,
   getMonthlyOrdersSummary,
   getTopSellingProducts,

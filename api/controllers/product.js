@@ -1,5 +1,6 @@
 const Product = require("../models/Product");
 const Store = require("../models/Store");
+const axios = require("axios");
 const { ImageUploadUtil } = require("../utils/cloudinary");
 
 const handleImageUpload = async (req, res) => {
@@ -264,9 +265,29 @@ const deleteProduct = async (req, res) => {
   }
 };
 
+const getShopifyProducts = async (req, res) => {
+  try{
+    const domain = "dev-shopilam.myshopify.com";
+    const accessToken = "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";
+    const response = await axios.get(`https://${domain}/admin/api/2024-04/products.json`, {
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": accessToken,
+      },
+    });
+    console.log(response?.data?.products);
+    return res.status(200).json({
+      response
+    });
+  }catch(error){
+    console.log(error);
+  }
+};
+
 module.exports = {
   handleImageUpload,
   createProduct,
+  getShopifyProducts,
   getAllProducts,
   updateProduct,
   deleteProduct,
