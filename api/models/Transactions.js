@@ -14,14 +14,16 @@ const transactionSchema = new mongoose.Schema(
       email: String,
     },
     paymentMethod: {
-      type: String,
-      brand: String,
-      last4: String,
-      exp_month: Number,
-      exp_year: Number,
+      type: {
+        type: String,
+        brand: String,
+        last4: String,
+        exp_month: Number,
+        exp_year: Number,
+      },
     },
     createdAt: { type: Date, default: Date.now },
-  },
+  }
 );
 
 module.exports = mongoose.model("Transaction", transactionSchema);
