@@ -52,3 +52,98 @@
   },
 ];
 
+[
+  {
+    id: "evt_3Rf8aU2e5EFIZW140PIO4TT4",
+    object: "event",
+    api_version: "2025-05-28.basil",
+    created: 1751154915,
+    data: {
+      object: {
+        id: "pi_3Rf8aU2e5EFIZW140pMxahnP",
+        object: "payment_intent",
+        amount: 45000,
+        amount_capturable: 0,
+        amount_details: {
+          tip: {},
+        },
+        amount_received: 45000,
+        application: null,
+        application_fee_amount: null,
+        automatic_payment_methods: {
+          allow_redirects: "always",
+          enabled: true,
+        },
+        canceled_at: null,
+        cancellation_reason: null,
+        capture_method: "automatic_async",
+        client_secret:
+          "pi_3Rf8aU2e5EFIZW140pMxahnP_secret_CFQ04qM60X2EPZRTVZTxGvpXs",
+        confirmation_method: "automatic",
+        created: 1751154914,
+        currency: "usd",
+        customer: null,
+        description: null,
+        last_payment_error: null,
+        latest_charge: "ch_3Rf8aU2e5EFIZW140wP89nvK",
+        livemode: false,
+        metadata: {
+          email: "zahidGill@gmail.com",
+          orderId: "S1035",
+        },
+        next_action: null,
+        on_behalf_of: null,
+        payment_method: "pm_1Rf8aV2e5EFIZW144ziezMuV",
+        payment_method_configuration_details: {
+          id: "pmc_1Red1U2e5EFIZW14srujhlkQ",
+          parent: null,
+        },
+        payment_method_options: {
+          affirm: {},
+          amazon_pay: {
+            express_checkout_element_session_id: null,
+          },
+          card: {
+            installments: null,
+            mandate_options: null,
+            network: null,
+            request_three_d_secure: "automatic",
+          },
+          cashapp: {},
+          klarna: {
+            preferred_locale: null,
+          },
+          link: {
+            persistent_token: null,
+          },
+        },
+        payment_method_types: [
+          "card",
+          "klarna",
+          "link",
+          "affirm",
+          "cashapp",
+          "amazon_pay",
+        ],
+        processing: null,
+        receipt_email: null,
+        review: null,
+        setup_future_usage: null,
+        shipping: null,
+        source: null,
+        statement_descriptor: null,
+        statement_descriptor_suffix: null,
+        status: "succeeded",
+        transfer_data: null,
+        transfer_group: null,
+      },
+    },
+    livemode: false,
+    pending_webhooks: 1,
+    request: {
+      id: "req_ru3TqZNwmU9APa",
+      idempotency_key: "90834472-ae75-440b-9119-580f9c310187",
+    },
+    type: "payment_intent.succeeded",
+  },
+];

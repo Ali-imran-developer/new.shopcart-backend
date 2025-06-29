@@ -24,6 +24,7 @@ const paymentIntent = async (req, res) => {
 
 const webhookCreate = async (req, res) => {
   const sig = req.headers["stripe-signature"];
+  console.log(sig);
   let event;
   try {
     event = stripe.webhooks.constructEvent(
@@ -35,7 +36,7 @@ const webhookCreate = async (req, res) => {
     console.log(error);
     return res.status(400).send(`Webhook Error: ${error.message}`);
   }
-
+  console.log(event.type);
   switch (event.type) {
     case "payment_intent.succeeded":
       const paymentIntent = event.data.object;
@@ -44,8 +45,8 @@ const webhookCreate = async (req, res) => {
         amount: paymentIntent.amount,
         currency: paymentIntent.currency,
         status: paymentIntent.status,
-        email: paymentIntent.receipt_email || paymentIntent.metadata?.email || "",
-        orderId: paymentIntent.metadata?.orderId || null,
+        email: paymentIntent.metadata?.email || "",
+        orderId: paymentIntent.metadata?.orderId || "",
         customer: {
           id: paymentIntent.customer || null,
           name: paymentIntent.shipping?.name || null,
@@ -53,13 +54,13 @@ const webhookCreate = async (req, res) => {
         },
         paymentMethod: {
           type: paymentIntent.payment_method_types?.[0] || null,
-          brand: paymentIntent.charges?.data?.[0]?.payment_method_details?.card?.brand || null,
-          last4: paymentIntent.charges?.data?.[0]?.payment_method_details?.card?.last4 || null,
-          exp_month: paymentIntent.charges?.data?.[0]?.payment_method_details?.card?.exp_month || null,
-          exp_year: paymentIntent.charges?.data?.[0]?.payment_method_details?.card?.exp_year || null,
+          // brand: paymentIntent.charges?.data?.[0]?.payment_method_details?.card?.brand || null,
+          // last4: paymentIntent.charges?.data?.[0]?.payment_method_details?.card?.last4 || null,
+          // exp_month: paymentIntent.charges?.data?.[0]?.payment_method_details?.card?.exp_month || null,
+          // exp_year: paymentIntent.charges?.data?.[0]?.payment_method_details?.card?.exp_year || null,
         },
       };
-      const exists = await Transactions.findOne({ paymentIntentId: paymentIntent.id });
+      const exists = await Transactions.findOne({ paymentIntentId: paymentIntent?.id });
       if (!exists) {
         await Transactions.create(transactionData);
         console.log("Transaction saved:", paymentIntent.id);
