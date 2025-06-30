@@ -1,5 +1,6 @@
 require("dotenv").config();
 const Stripe = require("stripe");
+const Order = require("../models/Order");
 const Transactions = require("../models/Transactions");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 

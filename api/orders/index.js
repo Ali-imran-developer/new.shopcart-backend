@@ -5,7 +5,7 @@ const rateLimiter  = require("../controllers/ratelimiter");
 const { createOrder, getAllOrder, updateOrder, deleteOrder, updateStatus, bookingOrder, getBookingOrder, getDashboardStats } = require("../controllers/order");
 
 router.post("/create", protect, createOrder);
-router.get("/get", rateLimiter(10, 1), protect, getAllOrder);
+router.get("/get", rateLimiter(5, 2), protect, getAllOrder);
 router.get("/dashboard-stats", protect, getDashboardStats);
 router.put("/update/:id", updateOrder);
 router.delete("/delete/:id", deleteOrder);
