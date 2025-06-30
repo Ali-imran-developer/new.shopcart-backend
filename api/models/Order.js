@@ -25,6 +25,7 @@ const OrderSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     store: { type: mongoose.Schema.Types.ObjectId, ref: "Store" },
+    clientSecret: { type: String, trim: true },
     name: { type: String, trim: true },
     paymentMethod: { type: String, trim: true, required: false },
     shipperCity: { type: String, trim: true, required: false },

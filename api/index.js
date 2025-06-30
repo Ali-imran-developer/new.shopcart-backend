@@ -15,11 +15,13 @@ const testRoutes = require("./populate/index");
 const userRoutes = require("./users/index");
 const dbConnect = require("./dbConnect");
 const serverless = require("serverless-http");
+// const redisConnect = require("./redisConnect");
 require("dotenv").config();
 const path = require("path");
 
 const app = express();
 dbConnect();
+// redisConnect();
 app.use(cors());
 app.use("/api/stripe/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());

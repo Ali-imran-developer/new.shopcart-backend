@@ -54,16 +54,27 @@ const webhookCreate = async (req, res) => {
         },
         paymentMethod: {
           type: paymentIntent.payment_method_types?.[0] || null,
-          // brand: paymentIntent.charges?.data?.[0]?.payment_method_details?.card?.brand || null,
-          // last4: paymentIntent.charges?.data?.[0]?.payment_method_details?.card?.last4 || null,
-          // exp_month: paymentIntent.charges?.data?.[0]?.payment_method_details?.card?.exp_month || null,
-          // exp_year: paymentIntent.charges?.data?.[0]?.payment_method_details?.card?.exp_year || null,
         },
       };
       const exists = await Transactions.findOne({ paymentIntentId: paymentIntent?.id });
+      let savedTransaction;
       if (!exists) {
-        await Transactions.create(transactionData);
+        savedTransaction = await Transactions.create(transactionData);
         console.log("Transaction saved:", paymentIntent.id);
+      } else {
+        savedTransaction = exists;
+      }
+      if (transactionData.orderId) {
+        const updatedOrder = await Order.findOneAndUpdate(
+          { name: transactionData.orderId },
+          { transactionId: savedTransaction._id },
+          { new: true }
+        );
+        if (updatedOrder) {
+          console.log(`Order ${updatedOrder._id} updated with transaction`);
+        } else {
+          console.log(`Order with name ${transactionData.orderId} not found`);
+        }
       }
       break;
     case "payment_intent.payment_failed":

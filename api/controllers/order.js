@@ -4,8 +4,10 @@ const Customer = require("../models/Customer");
 const Store = require("../models/Store");
 const ShipperInfo = require("../models/Shipperinfo");
 const Courier = require("../models/Courier");
+const Transaction = require("../models/Transactions");
 const axios = require("axios");
 const mongoose = require("mongoose");
+const { setCache, getCache } = require("../helper-functions/use-redis");
 
 const createOrder = async (req, res) => {
   try {
@@ -18,12 +20,9 @@ const createOrder = async (req, res) => {
       paymentMethod,
       shipperCity,
       status,
+      clientSecret,
     } = req.body;
-
     const store = await Store.findOne({ user: req?.user?._id });
-    console.log("REQ USER:", req.user);
-    console.log("REQ USER ID:", req.user?._id);
-    console.log(store);
     if (!store) {
       return res.status(404).json({
         success: false,
@@ -83,6 +82,7 @@ const createOrder = async (req, res) => {
       pricing,
       customer: customer._id,
       status,
+      clientSecret,
     });
     await newOrder.save();
     store.totalOrders = (store.totalOrders || 0) + 1;
@@ -90,6 +90,31 @@ const createOrder = async (req, res) => {
       store.totalCustomers = (store.totalCustomers || 0) + 1;
     }
     await store.save();
+    const cacheKey = `orders:${req.user._id.toString()}`;
+    const cached = await getCache(cacheKey);
+    const productIds = products.map((p) => p.productId);
+    const fullProducts = await Product.find({ _id: { $in: productIds } });
+    const enrichedProducts = products.map((p) => {
+      const data = fullProducts.find((fp) => fp._id.equals(p.productId));
+      return {
+        productData: data || {},
+        quantity: p.productQty,
+      };
+    });
+    const newOrderData = {
+      ...newOrder.toObject(),
+      trackingId: newOrder.trackingId || null,
+      products: enrichedProducts,
+      payment: paymentMethod === "paid" ? "paid" : "pending",
+    };
+    let updatedOrders = [];
+    if (Array.isArray(cached)) {
+      const exists = cached.some((o) => o._id === newOrderData._id.toString());
+      updatedOrders = exists ? cached : [newOrderData, ...cached];
+    } else {
+      updatedOrders = [newOrderData];
+    }
+    await setCache(cacheKey, updatedOrders);
     res.status(201).json({
       success: true,
       message: "Order created successfully!",
@@ -107,9 +132,19 @@ const createOrder = async (req, res) => {
 };
 
 const getAllOrder = async (req, res) => {
+  console.log("💥 Executing controller logic");
+  const userId = req?.user?._id?.toString();
+  const cacheKey = `orders:${userId}`;
   try {
+    const cached = await getCache(cacheKey);
+    if (cached && Array.isArray(cached)) {
+      return res.status(200).json({
+        success: true,
+        orders: cached,
+        message: "Fetched from Redis cache",
+      });
+    }
     const orders = await Order.find({ user: req.user._id });
-    // const orders = await Order.find();
     if (!orders || orders.length === 0) {
       return res.status(200).json({
         orders: [],
@@ -121,31 +156,36 @@ const getAllOrder = async (req, res) => {
     );
     const uniqueProductIds = [...new Set(allProductIds)];
     const allProducts = await Product.find({ _id: { $in: uniqueProductIds } });
-    const enrichedOrders = orders.map((order) => {
+    const clientSecret = orders?.map((order) => order?.clientSecret);
+    const transactions = await Transaction?.find({ paymentIntentId: { $in: clientSecret }});
+    const enrichedOrders = orders?.map((order) => {
       const enrichedProductDetails = order?.products
         ?.map((pd) => {
           const productData = allProducts?.find((product) =>
-            product._id.equals(pd.productId)
+            product?._id?.equals(pd?.productId)
           );
           if (productData) {
             return {
               productData,
-              quantity: pd.productQty,
+              quantity: pd?.productQty,
             };
           }
           return null;
         })
         .filter(Boolean);
+      const isPaid = transactions.some((tx) => tx?.paymentIntentId === order?.clientSecret);
       return {
         ...order.toObject(),
         trackingId: order.trackingId || null,
         products: enrichedProductDetails,
+        payment: isPaid ? "paid" : "pending",
       };
     });
-    console.log("Enriched Orders:", enrichedOrders);
+    await setCache(cacheKey, enrichedOrders);
     return res.status(200).json({
       success: true,
       orders: enrichedOrders,
+      message: "Fetched from DB",
     });
   } catch (error) {
     console.error(error);
@@ -491,98 +531,6 @@ const getBookingOrder = async (req, res) => {
   }
 };
 
-// Total Orders and Total Revenue (by product vendor)
-const getOrderStatsByVendor = async (req, res) => {
-  try {
-    const result = await Orders.aggregate([
-      { $unwind: "$lineItems" },
-      {
-        $group: {
-          _id: "$lineItems.productVendor",
-          totalOrders: { $sum: 1 },
-          totalRevenue: {
-            $sum: {
-              $multiply: [
-                { $toDouble: "$lineItems.productPrice" },
-                "$lineItems.productQuantity",
-              ],
-            },
-          },
-        },
-      },
-      { $sort: { totalRevenue: -1 } },
-    ]);
-    res.json({ success: true, data: result });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// Monthly Orders Summary (grouped by month)
-const getMonthlyOrdersSummary = async (req, res) => {
-  try {
-    const result = await Orders.aggregate([
-      {
-        $addFields: {
-          createdMonth: {
-            $month: {
-              $toDate: "$createdAt",
-            },
-          },
-        },
-      },
-      {
-        $group: {
-          _id: "$createdMonth",
-          totalOrders: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
-    res.json({ success: true, data: result });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// Top Selling Products
-const getTopSellingProducts = async (req, res) => {
-  try {
-    const result = await Order.aggregate([
-      { $unwind: "$lineItems" },
-      {
-        $group: {
-          _id: "$lineItems.productTitle",
-          totalSold: { $sum: "$lineItems.productQuantity" },
-        },
-      },
-      { $sort: { totalSold: -1 } },
-      { $limit: 5 },
-    ]);
-    res.json({ success: true, data: result });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// Customer Order Count
-const getCustomerOrderCounts = async (req, res) => {
-  try {
-    const result = await Orders.aggregate([
-      {
-        $group: {
-          _id: "$customerEmail",
-          orderCount: { $sum: 1 },
-        },
-      },
-      { $sort: { orderCount: -1 } },
-    ]);
-    res.json({ success: true, data: result });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
 const getDashboardStats = async (req, res) => {
   try {
     const openOrders = await Order.find({ user: req.user._id });
@@ -590,7 +538,9 @@ const getDashboardStats = async (req, res) => {
       return sum + (order.pricing?.totalPrice || 0);
     }, 0);
     const totalRevenue = openOrders.reduce((sum, order) => {
-      return (sum + ((order.pricing?.subTotal || 0) + (order.pricing?.orderTax || 0)));
+      return (
+        sum + ((order.pricing?.subTotal || 0) + (order.pricing?.orderTax || 0))
+      );
     }, 0);
     const topProductStats = await Order.aggregate([
       { $match: { user: new mongoose.Types.ObjectId(req.user._id) } },
@@ -608,10 +558,14 @@ const getDashboardStats = async (req, res) => {
 
     const topProductIds = topProductStats.map((item) => item._id);
     const allProducts = await Product.find({ _id: { $in: topProductIds } });
-    const topProducts = topProductStats.map((stat) => {
-      const productData = allProducts.find((p) => p._id.equals(stat._id));
-      return productData ? { product: productData, totalSold: stat.totalSold } : null;
-    }).filter(Boolean);
+    const topProducts = topProductStats
+      .map((stat) => {
+        const productData = allProducts.find((p) => p._id.equals(stat._id));
+        return productData
+          ? { product: productData, totalSold: stat.totalSold }
+          : null;
+      })
+      .filter(Boolean);
     res.json({
       newOrders: {
         todayOrders: openOrders.length,
@@ -638,6 +592,98 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
+// // Total Orders and Total Revenue (by product vendor)
+// const getOrderStatsByVendor = async (req, res) => {
+//   try {
+//     const result = await Orders.aggregate([
+//       { $unwind: "$lineItems" },
+//       {
+//         $group: {
+//           _id: "$lineItems.productVendor",
+//           totalOrders: { $sum: 1 },
+//           totalRevenue: {
+//             $sum: {
+//               $multiply: [
+//                 { $toDouble: "$lineItems.productPrice" },
+//                 "$lineItems.productQuantity",
+//               ],
+//             },
+//           },
+//         },
+//       },
+//       { $sort: { totalRevenue: -1 } },
+//     ]);
+//     res.json({ success: true, data: result });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+// // Monthly Orders Summary (grouped by month)
+// const getMonthlyOrdersSummary = async (req, res) => {
+//   try {
+//     const result = await Orders.aggregate([
+//       {
+//         $addFields: {
+//           createdMonth: {
+//             $month: {
+//               $toDate: "$createdAt",
+//             },
+//           },
+//         },
+//       },
+//       {
+//         $group: {
+//           _id: "$createdMonth",
+//           totalOrders: { $sum: 1 },
+//         },
+//       },
+//       { $sort: { _id: 1 } },
+//     ]);
+//     res.json({ success: true, data: result });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+// // Top Selling Products
+// const getTopSellingProducts = async (req, res) => {
+//   try {
+//     const result = await Order.aggregate([
+//       { $unwind: "$lineItems" },
+//       {
+//         $group: {
+//           _id: "$lineItems.productTitle",
+//           totalSold: { $sum: "$lineItems.productQuantity" },
+//         },
+//       },
+//       { $sort: { totalSold: -1 } },
+//       { $limit: 5 },
+//     ]);
+//     res.json({ success: true, data: result });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+// // Customer Order Count
+// const getCustomerOrderCounts = async (req, res) => {
+//   try {
+//     const result = await Orders.aggregate([
+//       {
+//         $group: {
+//           _id: "$customerEmail",
+//           orderCount: { $sum: 1 },
+//         },
+//       },
+//       { $sort: { orderCount: -1 } },
+//     ]);
+//     res.json({ success: true, data: result });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
 module.exports = {
   createOrder,
   getAllOrder,
@@ -647,8 +693,8 @@ module.exports = {
   bookingOrder,
   getBookingOrder,
   getDashboardStats,
-  getOrderStatsByVendor,
-  getMonthlyOrdersSummary,
-  getTopSellingProducts,
-  getCustomerOrderCounts,
+  // getOrderStatsByVendor,
+  // getMonthlyOrdersSummary,
+  // getTopSellingProducts,
+  // getCustomerOrderCounts,
 };
