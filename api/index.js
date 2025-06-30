@@ -13,9 +13,13 @@ const stripeRouter = require("./stripe/index");
 const ProfileRouter = require("./profile/index");
 const testRoutes = require("./populate/index");
 const userRoutes = require("./users/index");
+const session = require("express-session");
+const passport = require("passport");
+const googleAuthRoutes = require("./googleauth/index");
 const dbConnect = require("./dbConnect");
 const serverless = require("serverless-http");
 require("dotenv").config();
+require("./controllers/passport");
 const path = require("path");
 
 const app = express();
@@ -23,8 +27,12 @@ dbConnect();
 app.use(cors());
 app.use("/api/stripe/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
+app.use(session({ secret: "google_secret", resave: false, saveUninitialized: false,}));
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use("/api", authRouter);
+app.use("/api/auth", googleAuthRoutes);
 app.use("/api/orders", OrderRouter);
 app.use("/api/products", productRouter);
 app.use("/api/categories", CategoryRoute);

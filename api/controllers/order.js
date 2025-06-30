@@ -132,7 +132,6 @@ const createOrder = async (req, res) => {
 };
 
 const getAllOrder = async (req, res) => {
-  console.log("💥 Executing controller logic");
   const userId = req?.user?._id?.toString();
   const cacheKey = `orders:${userId}`;
   try {
@@ -206,7 +205,6 @@ const updateOrder = async (req, res) => {
   try {
     const { id } = req.params;
     const { shipmentDetails } = req.body;
-    console.log(id, shipmentDetails);
     if (!id || id.length !== 24) {
       return res.status(400).json({
         success: false,
