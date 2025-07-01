@@ -62,6 +62,12 @@ const loginUser = async (req, res) => {
         success: false,
         message: "User doesn't exists! Please register first",
       });
+    if (checkUser.authProvider === "google") {
+      return res.status(400).json({
+        success: false,
+        message: "You signed up with Google. Please login using 'Continue with Google'.",
+      });
+    }
     const checkPasswordMatch = await bcrypt.compare(
       password,
       checkUser.password
