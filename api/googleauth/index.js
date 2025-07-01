@@ -30,7 +30,6 @@ router.post("/google/token-login", async (req, res) => {
         authProvider: "google",
       });
     }
-
     const token = jwt.sign(
       {
         userId: user._id,
@@ -40,7 +39,6 @@ router.post("/google/token-login", async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
-
     return res.json({ token, user });
   } catch (error) {
     console.error("Google token login error:", error);
