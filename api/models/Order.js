@@ -16,10 +16,7 @@ const PricingSchema = new mongoose.Schema({
   totalPrice: { type: Number, required: true },
 });
 
-const productSchema = new mongoose.Schema({
-  productId: { type: String, required: true },
-  productQty: { type: Number, required: true },
-});
+const productSchema = new mongoose.Schema({}, { strict: false, _id: false });
 
 const OrderSchema = new mongoose.Schema(
   {

@@ -7,21 +7,11 @@ const Courier = require("../models/Courier");
 const Transaction = require("../models/Transactions");
 const axios = require("axios");
 const mongoose = require("mongoose");
-const { setCache, getCache } = require("../helper-functions/use-redis");
+// const { setCache, getCache } = require("../helper-functions/use-redis");
 
 const createOrder = async (req, res) => {
   try {
-    const {
-      products,
-      tags,
-      promoCode,
-      shipmentDetails,
-      pricing,
-      paymentMethod,
-      shipperCity,
-      status,
-      clientSecret,
-    } = req.body;
+    const { products, tags, promoCode, shipmentDetails, pricing, paymentMethod, shipperCity, status, clientSecret } = req.body;
     const store = await Store.findOne({ user: req?.user?._id });
     if (!store) {
       return res.status(404).json({
@@ -54,11 +44,11 @@ const createOrder = async (req, res) => {
           phone,
           city,
           totalOrders: 1,
-          totalSpent: pricing.totalPrice,
+          totalSpent: pricing?.totalPrice,
         });
       } else {
         customer = new Customer({
-          user: req.user._id,
+          user: req?.user?._id,
           customerName: name,
           phone,
           city,
@@ -69,52 +59,58 @@ const createOrder = async (req, res) => {
       }
     }
     await customer.save();
+    const productIds = products?.map((p) => p?.productId);
+    const fullProducts = await Product?.find({ _id: { $in: productIds } });
+    const enrichedProducts = products?.map((p) => {
+      const productData = fullProducts?.find((fp) => fp?._id?.equals(p?.productId));
+      if (!productData) return null;
+      const flattened = {
+        ...productData.toObject(),
+        productId: p?.productId,
+        productQty: p?.productQty,
+      };
+      return flattened;
+    }).filter(Boolean);
     const newOrder = new Order({
-      user: req.user._id,
-      store: store._id,
+      user: req?.user?._id,
+      store: store?._id,
       name: customOrderName,
-      products,
+      products: enrichedProducts,
       tags,
       promoCode,
       paymentMethod,
       shipperCity,
       shipmentDetails,
       pricing,
-      customer: customer._id,
+      customer: customer?._id,
       status,
       clientSecret,
     });
     await newOrder.save();
-    store.totalOrders = (store.totalOrders || 0) + 1;
+    store.totalOrders = (store?.totalOrders || 0) + 1;
     if (isNewCustomer) {
-      store.totalCustomers = (store.totalCustomers || 0) + 1;
+      store.totalCustomers = (store?.totalCustomers || 0) + 1;
     }
     await store.save();
-    const cacheKey = `orders:${req.user._id.toString()}`;
-    const cached = await getCache(cacheKey);
-    const productIds = products.map((p) => p.productId);
-    const fullProducts = await Product.find({ _id: { $in: productIds } });
-    const enrichedProducts = products.map((p) => {
-      const data = fullProducts.find((fp) => fp._id.equals(p.productId));
-      return {
-        productData: data || {},
-        quantity: p.productQty,
-      };
-    });
-    const newOrderData = {
-      ...newOrder.toObject(),
-      trackingId: newOrder.trackingId || null,
-      products: enrichedProducts,
-      payment: paymentMethod === "paid" ? "paid" : "pending",
-    };
-    let updatedOrders = [];
-    if (Array.isArray(cached)) {
-      const exists = cached.some((o) => o._id === newOrderData._id.toString());
-      updatedOrders = exists ? cached : [newOrderData, ...cached];
-    } else {
-      updatedOrders = [newOrderData];
-    }
-    await setCache(cacheKey, updatedOrders);
+    // const cacheKey = `orders:${req.user._id.toString()}`;
+    // const cached = await getCache(cacheKey);
+    // const newOrderData = {
+    //   ...newOrder?.toObject(),
+    //   trackingId: newOrder?.trackingId || null,
+    //   products: newOrder?.products?.map((p) => ({
+    //     productData: p?.productData,
+    //     quantity: p?.productQty,
+    //   })),
+    //   payment: paymentMethod === "paid" ? "paid" : "pending",
+    // };
+    // let updatedOrders = [];
+    // if (Array.isArray(cached)) {
+    //   const exists = cached.some((o) => o._id === newOrderData._id.toString());
+    //   updatedOrders = exists ? cached : [newOrderData, ...cached];
+    // } else {
+    //   updatedOrders = [newOrderData];
+    // }
+    // await setCache(cacheKey, updatedOrders);
     res.status(201).json({
       success: true,
       message: "Order created successfully!",
@@ -125,67 +121,74 @@ const createOrder = async (req, res) => {
     if (error.name === "ValidationError") {
       return res.status(400).json({ success: false, message: error.message });
     }
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal server error" });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
 const getAllOrder = async (req, res) => {
-  const userId = req?.user?._id?.toString();
-  const cacheKey = `orders:${userId}`;
+  const { status, page, limit, payment } = req.query;
+  const parsedPage = parseInt(page) || 1;
+  const parsedLimit = parseInt(limit) || 10;
+
+  const query = { user: req.user._id };
+  if (status) query.status = status;
+  if (payment === "pending") {
+    query.paymentMethod = "cod";
+  } else if (payment === "paid") {
+    query.paymentMethod = { $ne: "cod" };
+  }
+
+  // const cacheKey = `orders:${userId}:${status || "all"}:${
+  //   payment || "all"
+  // }:page=${parsedPage}:limit=${parsedLimit}`;
+
   try {
-    const cached = await getCache(cacheKey);
-    if (cached && Array.isArray(cached)) {
-      return res.status(200).json({
-        success: true,
-        orders: cached,
-        message: "Fetched from Redis cache",
-      });
-    }
-    const orders = await Order.find({ user: req.user._id });
+    // const cached = await getCache(cacheKey);
+    // if (cached && cached?.orders) {
+    //   return res.status(200).json({ ...cached, message: "Fetched from Redis cache" });
+    // }
+
+    const totalOrders = await Order.countDocuments(query);
+    const orders = await Order.find(query).skip((parsedPage - 1) * parsedLimit).limit(parsedLimit).sort({ createdAt: -1 });
     if (!orders || orders.length === 0) {
       return res.status(200).json({
         orders: [],
+        totalOrders: 0,
+        currentPage: parsedPage,
+        totalPages: 0,
         message: "No orders found",
       });
     }
-    const allProductIds = orders?.flatMap((order) =>
-      order?.products?.map((pd) => pd?.productId)
-    );
-    const uniqueProductIds = [...new Set(allProductIds)];
-    const allProducts = await Product.find({ _id: { $in: uniqueProductIds } });
-    const clientSecret = orders?.map((order) => order?.clientSecret);
-    const transactions = await Transaction?.find({ paymentIntentId: { $in: clientSecret }});
+
+    const clientSecrets = orders.map((order) => order.clientSecret);
+    const transactions = await Transaction.find({ paymentIntentId: { $in: clientSecrets }});
+    const courierIds = orders?.map((order) => order.courierId).filter((id) => id);
+    const shipperIds = orders?.map((order) => order.shipperId).filter((id) => id);
+    const allCouriers = await Courier.find({ _id: { $in: courierIds } });
+    const allShippers = await ShipperInfo.find({ _id: { $in: shipperIds } });
+
     const enrichedOrders = orders?.map((order) => {
-      const enrichedProductDetails = order?.products
-        ?.map((pd) => {
-          const productData = allProducts?.find((product) =>
-            product?._id?.equals(pd?.productId)
-          );
-          if (productData) {
-            return {
-              productData,
-              quantity: pd?.productQty,
-            };
-          }
-          return null;
-        })
-        .filter(Boolean);
-      const isPaid = transactions.some((tx) => tx?.paymentIntentId === order?.clientSecret);
+      const isPaid = transactions?.some((tx) => tx?.paymentIntentId === order?.clientSecret);
+      const courierData = allCouriers.find((c) => c?._id.equals(order?.courierId));
+      const shipperData = allShippers.find((s) => s?._id.equals(order?.shipperId));
       return {
         ...order.toObject(),
+        courier: courierData || null,
+        shipper: shipperData || null,
+        shipmentType: order.shipmentType || null,
         trackingId: order.trackingId || null,
-        products: enrichedProductDetails,
         payment: isPaid ? "paid" : "pending",
       };
     });
-    await setCache(cacheKey, enrichedOrders);
-    return res.status(200).json({
+    const responsePayload = {
       success: true,
       orders: enrichedOrders,
-      message: "Fetched from DB",
-    });
+      totalOrders,
+      currentPage: parsedPage,
+      totalPages: Math.ceil(totalOrders / parsedLimit),
+    };
+    console.log("enrichedOrders", enrichedOrders);
+    return res.status(200).json({ ...responsePayload, message: "Fetched from DB" });
   } catch (error) {
     console.error(error);
     if (error.name === "CastError") {
@@ -360,6 +363,20 @@ const updateStatus = async (req, res) => {
 
     order.status = status;
     await order.save();
+    // const cacheKey = `orders:${order.user.toString()}`;
+    // const cached = await getCache(cacheKey);
+    // if (cached && Array.isArray(cached)) {
+    //   const updatedCache = cached.map((cachedOrder) => {
+    //     if (cachedOrder._id === id) {
+    //       return {
+    //         ...cachedOrder,
+    //         status,
+    //       };
+    //     }
+    //     return cachedOrder;
+    //   });
+    //   await setCache(cacheKey, updatedCache);
+    // }
 
     return res.status(200).json({
       success: true,
@@ -456,78 +473,71 @@ const bookingOrder = async (req, res) => {
   }
 };
 
-const getBookingOrder = async (req, res) => {
-  try {
-    const bookedOrders = await Order.find({
-      user: req.user._id,
-      status: "booked",
-    });
-    // const bookedOrders = await Order.find({ status: "booked" });
-    if (!bookedOrders || bookedOrders.length === 0) {
-      return res.status(200).json({
-        bookedOrders: [],
-        message: "No bookedOrders found",
-      });
-    }
-    const allProductIds = bookedOrders?.flatMap((order) =>
-      order?.products?.map((pd) => pd?.productId)
-    );
-    const uniqueProductIds = [...new Set(allProductIds)];
-    const allProducts = await Product.find({ _id: { $in: uniqueProductIds } });
-    const courierIds = bookedOrders
-      .map((order) => order.courierId)
-      .filter((id) => id);
-    const shipperIds = bookedOrders
-      .map((order) => order.shipperId)
-      .filter((id) => id);
+// const getBookingOrder = async (req, res) => {
+//   try {
+//     const bookedOrders = await Order.find({
+//       user: req.user._id,
+//       status: "booked",
+//     });
+//     // const bookedOrders = await Order.find({ status: "booked" });
+//     if (!bookedOrders || bookedOrders.length === 0) {
+//       return res.status(200).json({
+//         bookedOrders: [],
+//         message: "No bookedOrders found",
+//       });
+//     }
+//     const allProductIds = bookedOrders?.flatMap((order) =>
+//       order?.products?.map((pd) => pd?.productId)
+//     );
+//     const uniqueProductIds = [...new Set(allProductIds)];
+//     const allProducts = await Product.find({ _id: { $in: uniqueProductIds } });
 
-    const allCouriers = await Courier.find({ _id: { $in: courierIds } });
-    const allShippers = await ShipperInfo.find({ _id: { $in: shipperIds } });
+//     const courierIds = bookedOrders.map((order) => order.courierId).filter((id) => id);
+//     const shipperIds = bookedOrders.map((order) => order.shipperId).filter((id) => id);
 
-    const bookOrders = bookedOrders.map((order) => {
-      const enrichedProductDetails = order?.products
-        ?.map((pd) => {
-          const productData = allProducts?.find((product) =>
-            product._id.equals(pd.productId)
-          );
-          if (productData) {
-            return {
-              productData,
-              quantity: pd.productQty,
-            };
-          }
-          return null;
-        })
-        .filter(Boolean);
+//     const allCouriers = await Courier.find({ _id: { $in: courierIds } });
+//     const allShippers = await ShipperInfo.find({ _id: { $in: shipperIds } });
 
-      const courierData = allCouriers.find((c) =>
-        c._id.equals(order.courierId)
-      );
-      const shipperData = allShippers.find((s) =>
-        s._id.equals(order.shipperId)
-      );
+//     const bookOrders = bookedOrders.map((order) => {
+//       const enrichedProductDetails = order?.products
+//         ?.map((pd) => {
+//           const productData = allProducts?.find((product) =>
+//             product._id.equals(pd.productId)
+//           );
+//           if (productData) {
+//             return {
+//               productData,
+//               quantity: pd.productQty,
+//             };
+//           }
+//           return null;
+//         })
+//         .filter(Boolean);
 
-      return {
-        ...order.toObject(),
-        products: enrichedProductDetails,
-        courier: courierData || null,
-        shipper: shipperData || null,
-        shipmentType: order.shipmentType || null,
-      };
-    });
+//       const courierData = allCouriers?.find((c) => c?._id?.equals(order?.courierId));
+//       const shipperData = allShippers.find((s) => s?._id?.equals(order?.shipperId));
 
-    return res.status(200).json({
-      success: true,
-      bookOrders,
-    });
-  } catch (error) {
-    console.error("Get Booking Order Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
-};
+//       return {
+//         ...order.toObject(),
+//         products: enrichedProductDetails,
+//         courier: courierData || null,
+//         shipper: shipperData || null,
+//         shipmentType: order.shipmentType || null,
+//       };
+//     });
+
+//     return res.status(200).json({
+//       success: true,
+//       bookOrders,
+//     });
+//   } catch (error) {
+//     console.error("Get Booking Order Error:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Internal server error",
+//     });
+//   }
+// };
 
 const getDashboardStats = async (req, res) => {
   try {
@@ -689,7 +699,7 @@ module.exports = {
   deleteOrder,
   updateStatus,
   bookingOrder,
-  getBookingOrder,
+  // getBookingOrder,
   getDashboardStats,
   // getOrderStatsByVendor,
   // getMonthlyOrdersSummary,
