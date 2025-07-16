@@ -7,7 +7,6 @@ const Courier = require("../models/Courier");
 const Transaction = require("../models/Transactions");
 const axios = require("axios");
 const mongoose = require("mongoose");
-// const { setCache, getCache } = require("../helper-functions/use-redis");
 
 const createOrder = async (req, res) => {
   try {
@@ -137,17 +136,7 @@ const getAllOrder = async (req, res) => {
   } else if (payment === "paid") {
     query.paymentMethod = { $ne: "cod" };
   }
-
-  // const cacheKey = `orders:${userId}:${status || "all"}:${
-  //   payment || "all"
-  // }:page=${parsedPage}:limit=${parsedLimit}`;
-
   try {
-    // const cached = await getCache(cacheKey);
-    // if (cached && cached?.orders) {
-    //   return res.status(200).json({ ...cached, message: "Fetched from Redis cache" });
-    // }
-
     const totalOrders = await Order.countDocuments(query);
     const orders = await Order.find(query).skip((parsedPage - 1) * parsedLimit).limit(parsedLimit).sort({ createdAt: -1 });
     if (!orders || orders.length === 0) {
@@ -473,72 +462,6 @@ const bookingOrder = async (req, res) => {
   }
 };
 
-// const getBookingOrder = async (req, res) => {
-//   try {
-//     const bookedOrders = await Order.find({
-//       user: req.user._id,
-//       status: "booked",
-//     });
-//     // const bookedOrders = await Order.find({ status: "booked" });
-//     if (!bookedOrders || bookedOrders.length === 0) {
-//       return res.status(200).json({
-//         bookedOrders: [],
-//         message: "No bookedOrders found",
-//       });
-//     }
-//     const allProductIds = bookedOrders?.flatMap((order) =>
-//       order?.products?.map((pd) => pd?.productId)
-//     );
-//     const uniqueProductIds = [...new Set(allProductIds)];
-//     const allProducts = await Product.find({ _id: { $in: uniqueProductIds } });
-
-//     const courierIds = bookedOrders.map((order) => order.courierId).filter((id) => id);
-//     const shipperIds = bookedOrders.map((order) => order.shipperId).filter((id) => id);
-
-//     const allCouriers = await Courier.find({ _id: { $in: courierIds } });
-//     const allShippers = await ShipperInfo.find({ _id: { $in: shipperIds } });
-
-//     const bookOrders = bookedOrders.map((order) => {
-//       const enrichedProductDetails = order?.products
-//         ?.map((pd) => {
-//           const productData = allProducts?.find((product) =>
-//             product._id.equals(pd.productId)
-//           );
-//           if (productData) {
-//             return {
-//               productData,
-//               quantity: pd.productQty,
-//             };
-//           }
-//           return null;
-//         })
-//         .filter(Boolean);
-
-//       const courierData = allCouriers?.find((c) => c?._id?.equals(order?.courierId));
-//       const shipperData = allShippers.find((s) => s?._id?.equals(order?.shipperId));
-
-//       return {
-//         ...order.toObject(),
-//         products: enrichedProductDetails,
-//         courier: courierData || null,
-//         shipper: shipperData || null,
-//         shipmentType: order.shipmentType || null,
-//       };
-//     });
-
-//     return res.status(200).json({
-//       success: true,
-//       bookOrders,
-//     });
-//   } catch (error) {
-//     console.error("Get Booking Order Error:", error);
-//     return res.status(500).json({
-//       success: false,
-//       message: "Internal server error",
-//     });
-//   }
-// };
-
 const getDashboardStats = async (req, res) => {
   try {
     const openOrders = await Order.find({ user: req.user._id });
@@ -594,115 +517,70 @@ const getDashboardStats = async (req, res) => {
     });
   } catch (error) {
     console.error("Dashboard stats error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to fetch dashboard stats" });
+    res.status(500).json({ success: false, message: "Failed to fetch dashboard stats" });
   }
 };
 
-// // Total Orders and Total Revenue (by product vendor)
-// const getOrderStatsByVendor = async (req, res) => {
-//   try {
-//     const result = await Orders.aggregate([
-//       { $unwind: "$lineItems" },
-//       {
-//         $group: {
-//           _id: "$lineItems.productVendor",
-//           totalOrders: { $sum: 1 },
-//           totalRevenue: {
-//             $sum: {
-//               $multiply: [
-//                 { $toDouble: "$lineItems.productPrice" },
-//                 "$lineItems.productQuantity",
-//               ],
-//             },
-//           },
-//         },
-//       },
-//       { $sort: { totalRevenue: -1 } },
-//     ]);
-//     res.json({ success: true, data: result });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-// // Monthly Orders Summary (grouped by month)
-// const getMonthlyOrdersSummary = async (req, res) => {
-//   try {
-//     const result = await Orders.aggregate([
-//       {
-//         $addFields: {
-//           createdMonth: {
-//             $month: {
-//               $toDate: "$createdAt",
-//             },
-//           },
-//         },
-//       },
-//       {
-//         $group: {
-//           _id: "$createdMonth",
-//           totalOrders: { $sum: 1 },
-//         },
-//       },
-//       { $sort: { _id: 1 } },
-//     ]);
-//     res.json({ success: true, data: result });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-// // Top Selling Products
-// const getTopSellingProducts = async (req, res) => {
-//   try {
-//     const result = await Order.aggregate([
-//       { $unwind: "$lineItems" },
-//       {
-//         $group: {
-//           _id: "$lineItems.productTitle",
-//           totalSold: { $sum: "$lineItems.productQuantity" },
-//         },
-//       },
-//       { $sort: { totalSold: -1 } },
-//       { $limit: 5 },
-//     ]);
-//     res.json({ success: true, data: result });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-// // Customer Order Count
-// const getCustomerOrderCounts = async (req, res) => {
-//   try {
-//     const result = await Orders.aggregate([
-//       {
-//         $group: {
-//           _id: "$customerEmail",
-//           orderCount: { $sum: 1 },
-//         },
-//       },
-//       { $sort: { orderCount: -1 } },
-//     ]);
-//     res.json({ success: true, data: result });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
+const getPayments = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page);
+    const limit = parseInt(req.query.limit);
+    const skip = (page - 1) * limit;
+    const orders = await Order.find({ user: req.user._id });
+    if (!orders.length) {
+      return res.status(200).json({
+        transactions: [],
+        page,
+        limit,
+        totalPayments: 0,
+        message: "No orders found",
+      });
+    }
+    const clientSecrets = orders.map((order) => order.clientSecret);
+    const transactions = await Transaction.find({
+      paymentIntentId: { $in: clientSecrets },
+    });
+    const orderMap = new Map();
+    orders.forEach((order) => {
+      orderMap.set(order.clientSecret, order);
+    });
+    let runningTotal = 0;
+    const allTransactionDetails = transactions
+      .map((tx) => {
+        const order = orderMap.get(tx.paymentIntentId);
+        if (order) {
+          runningTotal += tx.amount;
+          return {
+            totalReceived: runningTotal,
+            ordersItems: order?.products?.length,
+            orderName: order?.name,
+            amount: tx.amount,
+            transactionId: tx._id,
+            date: tx.createdAt,
+            customerName: order?.shipmentDetails?.name,
+          };
+        }
+        return null;
+      }).filter(Boolean);
+    return res.status(200).json({
+      transactions: allTransactionDetails,
+      page,
+      limit,
+      totalPayments: allTransactionDetails.length,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 module.exports = {
+  getPayments,
   createOrder,
   getAllOrder,
   updateOrder,
   deleteOrder,
   updateStatus,
   bookingOrder,
-  // getBookingOrder,
   getDashboardStats,
-  // getOrderStatsByVendor,
-  // getMonthlyOrdersSummary,
-  // getTopSellingProducts,
-  // getCustomerOrderCounts,
 };

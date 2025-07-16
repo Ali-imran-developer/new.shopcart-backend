@@ -41,17 +41,19 @@ const createShipperInfo = async (req, res) => {
 
 const getShipperInfo = async (req, res) => {
   try {
-    const shipperInfo = await ShipperInfo.find({ user: req.user._id });
-    // const shipperInfo = await ShipperInfo.find();
-    if (!shipperInfo || shipperInfo.length === 0) {
-      return res.status(200).json({
-        shipper: [],
-        message: "No shipperInfo found!",
-      });
-    }
+    const userId = req.user._id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const total = await ShipperInfo.countDocuments({ user: userId });
+    const shipperInfo = await ShipperInfo.find({ user: userId }).skip(skip).limit(limit).sort({ createdAt: -1 });
     return res.status(200).json({
       success: true,
       shipper: shipperInfo,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      totalShippers: total,
     });
   } catch (error) {
     console.error(error);

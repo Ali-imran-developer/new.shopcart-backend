@@ -14,6 +14,7 @@ const PricingSchema = new mongoose.Schema({
   paid: { type: Number, default: 0 },
   shipping: { type: Number, required: true },
   totalPrice: { type: Number, required: true },
+  profit : { type: Number, required: true, default: 0 },
 });
 
 const productSchema = new mongoose.Schema({}, { strict: false, _id: false });

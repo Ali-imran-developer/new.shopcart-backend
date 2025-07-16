@@ -1,5 +1,8 @@
 const { ImageUploadUtil } = require("../utils/cloudinary");
 const Store = require("../models/Store");
+const Order = require("../models/Order");
+const Product = require("../models/Product");
+const Customer = require("../models/Customer");
 
 const handleImageUpload = async (req, res) => {
   try {
@@ -22,17 +25,30 @@ const handleImageUpload = async (req, res) => {
 
 const getAllStore = async (req, res) => {
   try {
-    const fetchStore = await Store.find({ user: req.user._id });
-    // const fetchStore = await Store.find();
+    const fetchStore = await Store.find({ user: req?.user?._id });
     if (!fetchStore || fetchStore.length === 0) {
       return res.status(200).json({
         store: [],
         message: "No store found",
       });
     }
+    const [totalOrders, totalProducts, totalCustomers] = await Promise.all([
+      Order.countDocuments({ user: req?.user?._id }),
+      Product.countDocuments({ user: req?.user?._id }),
+      Customer.countDocuments({ user: req?.user?._id }),
+    ]);
+    const store = fetchStore.map((store) => ({
+      ...store.toObject(),
+      totalOrders,
+      totalProducts,
+      totalCustomers,
+    }));
     return res.status(200).json({
       success: true,
-      store: fetchStore,
+      totalOrders,
+      totalProducts,
+      totalCustomers,
+      store: store,
     });
   } catch (error) {
     if (error.name === "MongoNetworkError") {

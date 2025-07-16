@@ -12,6 +12,7 @@ const CategorySchema = new mongoose.Schema(
     subCategory: [SubCategorySchema],
     description: { type: String, trim: true },
     status: { type: String, trim: true },
+    image: { type: String, required: false },
   },
   { timestamps: true }
 );

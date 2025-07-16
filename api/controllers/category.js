@@ -21,22 +21,43 @@ const createCategory = async (req, res) => {
       });
     }
     await category.save();
-    res.status(201).json(category);
+    return res.status(201).json({
+      success: true,
+      message: "Category created successfully",
+      category,
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
 const getAllCategory = async (req, res) => {
   try {
-    const categories = await Category.find({ user: req.user._id }).sort({
-      createdAt: -1,
-    });
-    console.log(categories);
-    res.status(200).json(categories);
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: err.message });
+    const userId = req.user._id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const totalCategories = await Category.countDocuments({ user: userId });
+    const categories = await Category.find({ user: userId }).sort({ createdAt: -1 }).skip(skip).limit(limit);
+    return res.status(200).json({ page, limit, categories, success: true, totalCategories });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getPublicCatrgory = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15;
+    const skip = (page - 1) * limit;
+    const filter = { user: { $exists: null } };
+    const totalCategories = await Category.countDocuments(filter);
+    const categories = await Category.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
+    return res.status(200).json({ page, limit, categories, success: true, totalCategories });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -96,4 +117,5 @@ module.exports = {
   getAllCategory,
   updateCategory,
   deleteCategory,
+  getPublicCatrgory,
 };
