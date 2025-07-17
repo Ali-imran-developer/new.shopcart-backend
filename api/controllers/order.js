@@ -77,25 +77,6 @@ const createOrder = async (req, res) => {
       store.totalCustomers = (store?.totalCustomers || 0) + 1;
     }
     await store.save();
-    // const cacheKey = `orders:${req.user._id.toString()}`;
-    // const cached = await getCache(cacheKey);
-    // const newOrderData = {
-    //   ...newOrder?.toObject(),
-    //   trackingId: newOrder?.trackingId || null,
-    //   products: newOrder?.products?.map((p) => ({
-    //     productData: p?.productData,
-    //     quantity: p?.productQty,
-    //   })),
-    //   payment: paymentMethod === "paid" ? "paid" : "pending",
-    // };
-    // let updatedOrders = [];
-    // if (Array.isArray(cached)) {
-    //   const exists = cached.some((o) => o._id === newOrderData._id.toString());
-    //   updatedOrders = exists ? cached : [newOrderData, ...cached];
-    // } else {
-    //   updatedOrders = [newOrderData];
-    // }
-    // await setCache(cacheKey, updatedOrders);
     res.status(201).json({
       success: true,
       message: "Order created successfully!",
