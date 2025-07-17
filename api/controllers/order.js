@@ -20,11 +20,11 @@ const createOrder = async (req, res) => {
     }
     const totalOrders = await Order.countDocuments();
     const customOrderName = `#${1001 + totalOrders}`;
-    const { email, name, phone, city } = shipmentDetails;
-    let customer;
-    customer = await Customer.findOne({
+    const { name, phone, city } = shipmentDetails;
+    const normalizedCustomerName = name.trim().toLowerCase();
+    let customer = await Customer.findOne({
       user: req.user._id,
-      customerName: name,
+      customerName: { $regex: `^${normalizedCustomerName}$`, $options: "i" },
       phone,
     });
     let isNewCustomer = false;
@@ -33,29 +33,15 @@ const createOrder = async (req, res) => {
       customer.totalSpent += pricing.totalPrice;
       customer.city = city;
     } else {
-      const sameCityCustomer = await Customer.findOne({
+      customer = new Customer({
         user: req.user._id,
+        customerName: name.trim(),
+        phone,
         city,
+        totalOrders: 1,
+        totalSpent: pricing.totalPrice,
       });
-      if (sameCityCustomer) {
-        customer = new Customer({
-          customerName: name,
-          phone,
-          city,
-          totalOrders: 1,
-          totalSpent: pricing?.totalPrice,
-        });
-      } else {
-        customer = new Customer({
-          user: req?.user?._id,
-          customerName: name,
-          phone,
-          city,
-          totalOrders: 1,
-          totalSpent: pricing.totalPrice,
-        });
-        isNewCustomer = true;
-      }
+      isNewCustomer = true;
     }
     await customer.save();
     const productIds = products?.map((p) => p?.productId);

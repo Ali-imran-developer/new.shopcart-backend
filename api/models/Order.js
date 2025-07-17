@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const ShipmentDetailsSchema = new mongoose.Schema({
-  email: { type: String, required: true, trim: true },
+  email: { type: String, required: false, trim: true },
   name: { type: String, required: true, trim: true },
   phone: { type: String, required: true, trim: true },
   city: { type: String, required: true, trim: true },

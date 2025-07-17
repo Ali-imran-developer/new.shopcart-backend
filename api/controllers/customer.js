@@ -58,7 +58,12 @@ const createCustomer = async (req, res) => {
 
 const getAllCustomer = async (req, res) => {
   try {
-    const fetchCustomer = await Customer.find({ user: req.user._id });
+    const userId = req.user._id;
+    const page = parseInt(req.query.page);
+    const limit = parseInt(req.query.limit);
+    const skip = (page - 1) * limit;
+    const totalCustomers = await Customer.countDocuments({ user: userId });
+    const fetchCustomer = await Customer.find({ user: userId }).skip(skip).limit(limit) .sort({ createdAt: -1 });
     if (!fetchCustomer || fetchCustomer?.length === 0) {
       return res.status(200).json({
         customer: [],
@@ -67,6 +72,9 @@ const getAllCustomer = async (req, res) => {
     }
     return res.status(200).json({
       success: true,
+      page,
+      limit,
+      totalCustomers,
       customer: fetchCustomer,
     });
   } catch (error) {
