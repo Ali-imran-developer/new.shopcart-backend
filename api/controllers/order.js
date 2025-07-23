@@ -381,20 +381,14 @@ const bookingOrder = async (req, res) => {
       })),
       shipping_address1: order.shipmentDetails?.address || "",
       created_at: new Date(order.createdAt).toISOString(),
-      account_id: "q6398070",
+      account_id: process.env.HONEYBEE_API_PASSWORD,
     };
-
-    const response = await axios.post(
-      "http://honeybeecourier.com/api/v10/parcels/booking",
-      courierPayload,
-      {
-        headers: {
-          apiKey: "HBC_0xGhUiqkNtziEPaeUZnt6ghy",
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
+    const response = await axios.post(process.env.HONEYBEE_API_URL, courierPayload, {
+      headers: {
+        apiKey: process.env.HONEYBEE_API_KEY,
+        "Content-Type": "application/json",
+      },
+    });
     const { message, tracking_id } = response?.data || {};
     const trackingId = tracking_id;
     if (message && trackingId) {

@@ -285,16 +285,13 @@ const deleteProduct = async (req, res) => {
 
 const getShopifyProducts = async (req, res) => {
   try {
-    const domain = "dev-shopilam.myshopify.com";
-    const accessToken = "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";
-    const response = await axios.get(
-      `https://${domain}/admin/api/2024-04/products.json`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "X-Shopify-Access-Token": accessToken,
-        },
-      }
+    const domain = process.env.SHOPIFY_DOMAIN;
+    const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+    const response = await axios.get(`https://${domain}/admin/api/2024-04/products.json`, {
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": accessToken,
+      }}
     );
     console.log(response?.data?.products);
     return res.status(200).json({
