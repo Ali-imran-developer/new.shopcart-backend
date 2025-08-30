@@ -43,6 +43,17 @@ const createProduct = async (req, res) => {
         message: "Please provide all the required fields",
       });
     }
+    let imageUrl = "";
+    try {
+      const uploaded = await ImageUploadUtil(image);
+      imageUrl = uploaded.secure_url;
+    } catch (err) {
+      console.error("Cloudinary upload error:", err);
+      return res.status(500).json({
+        success: false,
+        message: "Image upload failed",
+      });
+    }
     let store = await Store.findOne({ user: req.user._id });
     // let store = await Store.findOne();
     if (!store) {
@@ -65,7 +76,7 @@ const createProduct = async (req, res) => {
       name,
       price,
       stock,
-      image,
+      image: imageUrl,
       status,
       category,
       available,

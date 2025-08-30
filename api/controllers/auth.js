@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+const { ImageUploadUtil } = require("../utils/cloudinary");
 
 const registerUser = async (req, res) => {
   const { userName, email, password } = req.body;
@@ -73,7 +74,7 @@ const loginUser = async (req, res) => {
       checkUser.password
     );
     if (!checkPasswordMatch) {
-      return res.json({
+      return res.status(403).json({
         success: false,
         message: "Incorrect password! Please try again",
       });
@@ -103,26 +104,51 @@ const loginUser = async (req, res) => {
         phoneNumber: checkUser.phoneNumber || "",
       },
     });
-  } catch (e) {
-    console.log(e);
+  } catch (error) {
+    console.log(error);
     res.status(500).json({
       success: false,
-      message: "Some error occured",
+      message: error.message,
+    });
+  }
+};
+
+const getUser = async (req, res) => {
+  try {
+    res.status(200).json({
+      success: true,
+      user: req.user,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Some error occurred",
     });
   }
 };
 
 const updateUser = async (req, res) => {
   try {
-    const { id } = req.params;
     const { address, email, image, name, phoneNumber } = req.body;
+    let imageUrl = image;
+    if (image && !image.startsWith("http")) {
+      let uploadStr = image;
+      if (!image.startsWith("data:")) {
+        uploadStr = `data:image/jpeg;base64,${image}`;
+      }
+      const uploadResult = await ImageUploadUtil(uploadStr);
+      imageUrl = uploadResult.secure_url;
+    } else if (image?.startsWith("http")) {
+      imageUrl = image;
+    }
     const updatedUser = await User.findByIdAndUpdate(
-      id,
+      req.user._id,
       {
         $set: {
           address: address || "",
           email: email || "",
-          image: image || "",
+          image: imageUrl || "",
           name: name || "",
           phoneNumber: phoneNumber || "",
         },
@@ -141,7 +167,7 @@ const updateUser = async (req, res) => {
       user: updatedUser,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -215,6 +241,7 @@ const resetPassword = async (req, res) => {
 };
 
 module.exports = {
+  getUser,
   registerUser,
   loginUser,
   updateUser,
