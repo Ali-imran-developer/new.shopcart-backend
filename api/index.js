@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const authRouter = require("./auth/index");
@@ -19,7 +20,6 @@ const passport = require("passport");
 const googleAuthRoutes = require("./googleauth/index");
 const dbConnect = require("./dbConnect");
 const serverless = require("serverless-http");
-require("dotenv").config();
 require("./controllers/passport");
 const path = require("path");
 
