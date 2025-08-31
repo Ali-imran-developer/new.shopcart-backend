@@ -450,14 +450,10 @@ const getDashboardStats = async (req, res) => {
 
     const topProductIds = topProductStats.map((item) => item._id);
     const allProducts = await Product.find({ _id: { $in: topProductIds } });
-    const topProducts = topProductStats
-      .map((stat) => {
-        const productData = allProducts.find((p) => p._id.equals(stat._id));
-        return productData
-          ? { product: productData, totalSold: stat.totalSold }
-          : null;
-      })
-      .filter(Boolean);
+    const topProducts = topProductStats.map((stat) => {
+      const productData = allProducts.find((p) => p._id.equals(stat._id));
+      return productData ? { product: productData, totalSold: stat.totalSold } : null;
+    }).filter(Boolean);
     res.json({
       newOrders: {
         todayOrders: openOrders.length,
@@ -478,7 +474,7 @@ const getDashboardStats = async (req, res) => {
     });
   } catch (error) {
     console.error("Dashboard stats error:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch dashboard stats" });
+    res.status(500).json({ success: false, message: error });
   }
 };
 

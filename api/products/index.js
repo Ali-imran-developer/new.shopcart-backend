@@ -5,7 +5,7 @@ const router = express.Router();
 const protect = require("../controllers/protect");
 
 router.post("/upload-image", upload.single("my_file"), handleImageUpload);
-router.post("/create", createProduct);
+router.post("/create", protect, createProduct);
 router.post("/upload-csv", protect, upload.single("csvFile"), uploadCSV);
 router.get("/get", protect, getAllProducts);
 router.get("/shopify-products", getShopifyProducts);

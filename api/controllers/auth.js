@@ -134,9 +134,6 @@ const updateUser = async (req, res) => {
     let imageUrl = image;
     if (image && !image.startsWith("http")) {
       let uploadStr = image;
-      if (!image.startsWith("data:")) {
-        uploadStr = `data:image/jpeg;base64,${image}`;
-      }
       const uploadResult = await ImageUploadUtil(uploadStr);
       imageUrl = uploadResult.secure_url;
     } else if (image?.startsWith("http")) {
@@ -167,7 +164,7 @@ const updateUser = async (req, res) => {
       user: updatedUser,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
